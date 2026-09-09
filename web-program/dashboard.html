@@ -432,8 +432,8 @@
                                                 <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">vs last week</span>
                                             </div>
                                         </div>
-                                        <div className="flex-1 w-full h-[200px] relative">
-                                            <canvas ref={chartRef}></canvas>
+                                        <div className="flex-1 min-w-0 w-full h-[200px] relative overflow-hidden">
+                                            <canvas ref={chartRef} className="block w-full h-full"></canvas>
                                         </div>
                                     </div>
                                 </div>
