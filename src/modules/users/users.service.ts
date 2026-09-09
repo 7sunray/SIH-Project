@@ -54,7 +54,8 @@ async create(createDto: CreateUserDto) {
     if (role) where.role = role;
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
       ];
     }
@@ -67,11 +68,12 @@ async create(createDto: CreateUserDto) {
         select: {
           id: true,
           email: true,
-          name: true,
+          firstName: true,
+          lastName: true,
           role: true,
-          state: true,
-          district: true,
-          created_at: true,
+          jurisdictionState: true,
+          jurisdictionDist: true,
+          createdAt: true,
         },
       }),
       this.prisma.user.count({ where }),
@@ -94,11 +96,12 @@ async create(createDto: CreateUserDto) {
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         role: true,
-        state: true,
-        district: true,
-        created_at: true,
+        jurisdictionState: true,
+        jurisdictionDist: true,
+        createdAt: true,
       },
     });
     if (!user) throw new NotFoundException('User not found');
@@ -106,20 +109,31 @@ async create(createDto: CreateUserDto) {
   }
 
   async update(id: string, updateDto: UpdateUserDto) {
-    const data: any = { ...updateDto };
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 10);
+    // Translate DTO fields to real User columns (name -> first/last,
+    // password -> passwordHash, state/district -> jurisdiction*).
+    const { name, password, state, district, ...rest } = updateDto as any;
+    const data: any = { ...rest };
+    if (name) {
+      const [firstName, ...lastNameArr] = String(name).split(' ');
+      data.firstName = firstName;
+      data.lastName = lastNameArr.join(' ') || '';
     }
+    if (password) {
+      data.passwordHash = await bcrypt.hash(password, 10);
+    }
+    if (state !== undefined) data.jurisdictionState = state;
+    if (district !== undefined) data.jurisdictionDist = district;
     return this.prisma.user.update({
       where: { id },
       data,
       select: {
         id: true,
         email: true,
-        name: true,
+        firstName: true,
+        lastName: true,
         role: true,
-        state: true,
-        district: true,
+        jurisdictionState: true,
+        jurisdictionDist: true,
       },
     });
   }

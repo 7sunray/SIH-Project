@@ -5,7 +5,7 @@ import * as fs from 'fs';
 
 @Injectable()
 export class AuthService {
-  private readonly privateKey = fs.readFileSync('keys/jwt_private.pem', 'utf8');
+  private readonly privateKey = fs.readFileSync('keys/jwt-private.pem', 'utf8');
 
   constructor(private readonly jwtService: JwtService) {}
 

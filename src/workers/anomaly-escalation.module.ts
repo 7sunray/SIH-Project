@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUES } from '../queues/queue-definitions';
-import { AnomalyProcessModule}from './anomaly-escalation.worker';
+import { AnomalyEscalationWorker } from './anomaly-escalation.worker';
 
 @Module({
   imports: [
@@ -9,7 +9,7 @@ import { AnomalyProcessModule}from './anomaly-escalation.worker';
       name: QUEUES.ANOMALY_ESCALATION,
     }),
   ],
-  providers: [AnomalyProcessModule],
+  providers: [AnomalyEscalationWorker],
   exports: [BullModule],
 })
 export class AnomalyEscalationModule {}

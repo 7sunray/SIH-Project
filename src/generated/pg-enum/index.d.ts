@@ -803,7 +803,7 @@ export namespace Prisma {
   ? False
   : T extends Uint8Array
   ? False
-  : T extends bigint
+  : T extends BigInt
   ? False
   : T extends object
   ? True
@@ -12115,7 +12115,7 @@ export namespace Prisma {
     readonly mediaType: FieldRef<"ReportMedia", 'ReportMediaType'>
     readonly s3Key: FieldRef<"ReportMedia", 'String'>
     readonly originalFileName: FieldRef<"ReportMedia", 'String'>
-    readonly fileSizeBytes: FieldRef<"ReportMedia", 'bigint'>
+    readonly fileSizeBytes: FieldRef<"ReportMedia", 'BigInt'>
     readonly mimeType: FieldRef<"ReportMedia", 'String'>
     readonly capturedAt: FieldRef<"ReportMedia", 'DateTime'>
     readonly exifData: FieldRef<"ReportMedia", 'Json'>
@@ -14481,8 +14481,8 @@ export namespace Prisma {
     readonly startedAt: FieldRef<"VCSession", 'DateTime'>
     readonly endedAt: FieldRef<"VCSession", 'DateTime'>
     readonly durationSeconds: FieldRef<"VCSession", 'Int'>
-    readonly janusSessionId: FieldRef<"VCSession", 'bigint'>
-    readonly janusHandleId: FieldRef<"VCSession", 'bigint'>
+    readonly janusSessionId: FieldRef<"VCSession", 'BigInt'>
+    readonly janusHandleId: FieldRef<"VCSession", 'BigInt'>
     readonly recordingPath: FieldRef<"VCSession", 'String'>
     readonly createdAt: FieldRef<"VCSession", 'DateTime'>
     readonly updatedAt: FieldRef<"VCSession", 'DateTime'>
@@ -21469,16 +21469,16 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'bigint'
+   * Reference to a field of type 'BigInt'
    */
-  export type bigintFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'bigint'>
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
     
 
 
   /**
-   * Reference to a field of type 'bigint[]'
+   * Reference to a field of type 'BigInt[]'
    */
-  export type ListbigintFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'bigint[]'>
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -22490,7 +22490,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFilter<"ReportMedia"> | $Enums.ReportMediaType
     s3Key?: StringFilter<"ReportMedia"> | string
     originalFileName?: StringFilter<"ReportMedia"> | string
-    fileSizeBytes?: bigintFilter<"ReportMedia"> | bigint | number
+    fileSizeBytes?: BigIntFilter<"ReportMedia"> | bigint | number
     mimeType?: StringFilter<"ReportMedia"> | string
     capturedAt?: DateTimeFilter<"ReportMedia"> | Date | string
     exifData?: JsonNullableFilter<"ReportMedia">
@@ -22530,7 +22530,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFilter<"ReportMedia"> | $Enums.ReportMediaType
     s3Key?: StringFilter<"ReportMedia"> | string
     originalFileName?: StringFilter<"ReportMedia"> | string
-    fileSizeBytes?: bigintFilter<"ReportMedia"> | bigint | number
+    fileSizeBytes?: BigIntFilter<"ReportMedia"> | bigint | number
     mimeType?: StringFilter<"ReportMedia"> | string
     capturedAt?: DateTimeFilter<"ReportMedia"> | Date | string
     exifData?: JsonNullableFilter<"ReportMedia">
@@ -22572,7 +22572,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeWithAggregatesFilter<"ReportMedia"> | $Enums.ReportMediaType
     s3Key?: StringWithAggregatesFilter<"ReportMedia"> | string
     originalFileName?: StringWithAggregatesFilter<"ReportMedia"> | string
-    fileSizeBytes?: bigintWithAggregatesFilter<"ReportMedia"> | bigint | number
+    fileSizeBytes?: BigIntWithAggregatesFilter<"ReportMedia"> | bigint | number
     mimeType?: StringWithAggregatesFilter<"ReportMedia"> | string
     capturedAt?: DateTimeWithAggregatesFilter<"ReportMedia"> | Date | string
     exifData?: JsonNullableWithAggregatesFilter<"ReportMedia">
@@ -22686,8 +22686,8 @@ export namespace Prisma {
     startedAt?: DateTimeNullableFilter<"VCSession"> | Date | string | null
     endedAt?: DateTimeNullableFilter<"VCSession"> | Date | string | null
     durationSeconds?: IntNullableFilter<"VCSession"> | number | null
-    janusSessionId?: bigintNullableFilter<"VCSession"> | bigint | number | null
-    janusHandleId?: bigintNullableFilter<"VCSession"> | bigint | number | null
+    janusSessionId?: BigIntNullableFilter<"VCSession"> | bigint | number | null
+    janusHandleId?: BigIntNullableFilter<"VCSession"> | bigint | number | null
     recordingPath?: StringNullableFilter<"VCSession"> | string | null
     createdAt?: DateTimeFilter<"VCSession"> | Date | string
     updatedAt?: DateTimeFilter<"VCSession"> | Date | string
@@ -22728,8 +22728,8 @@ export namespace Prisma {
     startedAt?: DateTimeNullableFilter<"VCSession"> | Date | string | null
     endedAt?: DateTimeNullableFilter<"VCSession"> | Date | string | null
     durationSeconds?: IntNullableFilter<"VCSession"> | number | null
-    janusSessionId?: bigintNullableFilter<"VCSession"> | bigint | number | null
-    janusHandleId?: bigintNullableFilter<"VCSession"> | bigint | number | null
+    janusSessionId?: BigIntNullableFilter<"VCSession"> | bigint | number | null
+    janusHandleId?: BigIntNullableFilter<"VCSession"> | bigint | number | null
     recordingPath?: StringNullableFilter<"VCSession"> | string | null
     createdAt?: DateTimeFilter<"VCSession"> | Date | string
     updatedAt?: DateTimeFilter<"VCSession"> | Date | string
@@ -22772,8 +22772,8 @@ export namespace Prisma {
     startedAt?: DateTimeNullableWithAggregatesFilter<"VCSession"> | Date | string | null
     endedAt?: DateTimeNullableWithAggregatesFilter<"VCSession"> | Date | string | null
     durationSeconds?: IntNullableWithAggregatesFilter<"VCSession"> | number | null
-    janusSessionId?: bigintNullableWithAggregatesFilter<"VCSession"> | bigint | number | null
-    janusHandleId?: bigintNullableWithAggregatesFilter<"VCSession"> | bigint | number | null
+    janusSessionId?: BigIntNullableWithAggregatesFilter<"VCSession"> | bigint | number | null
+    janusHandleId?: BigIntNullableWithAggregatesFilter<"VCSession"> | bigint | number | null
     recordingPath?: StringNullableWithAggregatesFilter<"VCSession"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"VCSession"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"VCSession"> | Date | string
@@ -24062,7 +24062,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue
@@ -24080,7 +24080,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue
@@ -24096,7 +24096,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue
@@ -24112,7 +24112,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue
@@ -24263,8 +24263,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24282,8 +24282,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24316,8 +24316,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24333,8 +24333,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25842,15 +25842,15 @@ export namespace Prisma {
     not?: NestedEnumReportMediaTypeFilter<$PrismaModel> | $Enums.ReportMediaType
   }
 
-  export type bigintFilter<$PrismaModel = never> = {
-    equals?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel>
-    lt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    lte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    not?: NestedbigintFilter<$PrismaModel> | bigint | number
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
   }
   export type JsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -25956,20 +25956,20 @@ export namespace Prisma {
     _max?: NestedEnumReportMediaTypeFilter<$PrismaModel>
   }
 
-  export type bigintWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel>
-    lt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    lte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    not?: NestedbigintWithAggregatesFilter<$PrismaModel> | bigint | number
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
     _count?: NestedIntFilter<$PrismaModel>
     _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedbigintFilter<$PrismaModel>
-    _min?: NestedbigintFilter<$PrismaModel>
-    _max?: NestedbigintFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
   }
   export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -26158,15 +26158,15 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
-  export type bigintNullableFilter<$PrismaModel = never> = {
-    equals?: bigint | number | bigintFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    lte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    not?: NestedbigintNullableFilter<$PrismaModel> | bigint | number | null
+  export type BigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
   }
 
   export type InspectionNullableScalarRelationFilter = {
@@ -26269,20 +26269,20 @@ export namespace Prisma {
     _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
-  export type bigintNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | bigintFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    lte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    not?: NestedbigintNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+  export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
     _count?: NestedIntNullableFilter<$PrismaModel>
     _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedbigintNullableFilter<$PrismaModel>
-    _min?: NestedbigintNullableFilter<$PrismaModel>
-    _max?: NestedbigintNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
   export type VCSessionScalarRelationFilter = {
@@ -27481,7 +27481,7 @@ export namespace Prisma {
     set?: $Enums.ReportMediaType
   }
 
-  export type bigintFieldUpdateOperationsInput = {
+  export type BigIntFieldUpdateOperationsInput = {
     set?: bigint | number
     increment?: bigint | number
     decrement?: bigint | number
@@ -27574,7 +27574,7 @@ export namespace Prisma {
     divide?: number
   }
 
-  export type NullablebigintFieldUpdateOperationsInput = {
+  export type NullableBigIntFieldUpdateOperationsInput = {
     set?: bigint | number | null
     increment?: bigint | number
     decrement?: bigint | number
@@ -28158,15 +28158,15 @@ export namespace Prisma {
     not?: NestedEnumReportMediaTypeFilter<$PrismaModel> | $Enums.ReportMediaType
   }
 
-  export type NestedbigintFilter<$PrismaModel = never> = {
-    equals?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel>
-    lt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    lte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    not?: NestedbigintFilter<$PrismaModel> | bigint | number
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
   }
 
   export type NestedEnumReportMediaTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -28179,20 +28179,20 @@ export namespace Prisma {
     _max?: NestedEnumReportMediaTypeFilter<$PrismaModel>
   }
 
-  export type NestedbigintWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel>
-    lt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    lte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    not?: NestedbigintWithAggregatesFilter<$PrismaModel> | bigint | number
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
     _count?: NestedIntFilter<$PrismaModel>
     _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedbigintFilter<$PrismaModel>
-    _min?: NestedbigintFilter<$PrismaModel>
-    _max?: NestedbigintFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
   }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -28275,15 +28275,15 @@ export namespace Prisma {
     not?: NestedEnumVCSessionStatusFilter<$PrismaModel> | $Enums.VCSessionStatus
   }
 
-  export type NestedbigintNullableFilter<$PrismaModel = never> = {
-    equals?: bigint | number | bigintFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    lte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    not?: NestedbigintNullableFilter<$PrismaModel> | bigint | number | null
+  export type NestedBigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
   }
 
   export type NestedEnumVCSessionStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -28323,20 +28323,20 @@ export namespace Prisma {
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
-  export type NestedbigintNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | bigintFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListbigintFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    lte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gt?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    gte?: bigint | number | bigintFieldRefInput<$PrismaModel>
-    not?: NestedbigintNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+  export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
     _count?: NestedIntNullableFilter<$PrismaModel>
     _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedbigintNullableFilter<$PrismaModel>
-    _min?: NestedbigintNullableFilter<$PrismaModel>
-    _max?: NestedbigintNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumAnomalyTypeFilter<$PrismaModel = never> = {
@@ -30456,8 +30456,8 @@ export namespace Prisma {
     startedAt?: DateTimeNullableFilter<"VCSession"> | Date | string | null
     endedAt?: DateTimeNullableFilter<"VCSession"> | Date | string | null
     durationSeconds?: IntNullableFilter<"VCSession"> | number | null
-    janusSessionId?: bigintNullableFilter<"VCSession"> | bigint | number | null
-    janusHandleId?: bigintNullableFilter<"VCSession"> | bigint | number | null
+    janusSessionId?: BigIntNullableFilter<"VCSession"> | bigint | number | null
+    janusHandleId?: BigIntNullableFilter<"VCSession"> | bigint | number | null
     recordingPath?: StringNullableFilter<"VCSession"> | string | null
     createdAt?: DateTimeFilter<"VCSession"> | Date | string
     updatedAt?: DateTimeFilter<"VCSession"> | Date | string
@@ -30718,7 +30718,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFilter<"ReportMedia"> | $Enums.ReportMediaType
     s3Key?: StringFilter<"ReportMedia"> | string
     originalFileName?: StringFilter<"ReportMedia"> | string
-    fileSizeBytes?: bigintFilter<"ReportMedia"> | bigint | number
+    fileSizeBytes?: BigIntFilter<"ReportMedia"> | bigint | number
     mimeType?: StringFilter<"ReportMedia"> | string
     capturedAt?: DateTimeFilter<"ReportMedia"> | Date | string
     exifData?: JsonNullableFilter<"ReportMedia">
@@ -30918,7 +30918,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue
@@ -30935,7 +30935,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue
@@ -31250,8 +31250,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31268,8 +31268,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -33322,8 +33322,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -33339,8 +33339,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -33356,8 +33356,8 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     durationSeconds?: NullableIntFieldUpdateOperationsInput | number | null
-    janusSessionId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
-    janusHandleId?: NullablebigintFieldUpdateOperationsInput | bigint | number | null
+    janusSessionId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    janusHandleId?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
     recordingPath?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -33368,7 +33368,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue
@@ -33384,7 +33384,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue
@@ -33400,7 +33400,7 @@ export namespace Prisma {
     mediaType?: EnumReportMediaTypeFieldUpdateOperationsInput | $Enums.ReportMediaType
     s3Key?: StringFieldUpdateOperationsInput | string
     originalFileName?: StringFieldUpdateOperationsInput | string
-    fileSizeBytes?: bigintFieldUpdateOperationsInput | bigint | number
+    fileSizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     mimeType?: StringFieldUpdateOperationsInput | string
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     exifData?: NullableJsonNullValueInput | InputJsonValue

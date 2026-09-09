@@ -7,7 +7,7 @@ export class AnalyticsService {
 
   async getDashboardOverview() {
     const totalInspections = await (this.prisma as any).inspection.count();
-    const totalAnomalies = await (this.prisma as any).anomaly.count();
+    const totalAnomalies = await (this.prisma as any).anomalyAlert.count();
     
     return {
       totalInspections,
@@ -17,7 +17,7 @@ export class AnalyticsService {
   }
 
   async getAnomalyAggregations() {
-    return await (this.prisma as any).anomaly.groupBy({
+    return await (this.prisma as any).anomalyAlert.groupBy({
       by: ['status', 'severity'],
       _count: { id: true },
     });

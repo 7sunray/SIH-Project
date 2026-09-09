@@ -1,0 +1,277 @@
+{
+  "info": {
+    "name": "dosje-backend",
+    "description": "Step 10.5 checklist collection. Run Login first (stores {{token}}). IDs chain where the API returns them (users flow); other :id params use placeholders.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "token", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "inspectionId", "value": "00000000-0000-4000-8000-000000000001" },
+    { "key": "anomalyId", "value": "00000000-0000-4000-8000-000000000002" },
+    { "key": "cctvId", "value": "00000000-0000-4000-8000-000000000003" }
+  ],
+  "item": [
+    {
+      "name": "00 - Health",
+      "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+    },
+    {
+      "name": "01 - Metrics",
+      "request": { "method": "GET", "url": "{{baseUrl}}/metrics" }
+    },
+    {
+      "name": "10 - Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('login succeeds', () => pm.response.to.have.status(201));",
+              "const token = pm.response.json().accessToken;",
+              "if (token) pm.collectionVariables.set('token', token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/login",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"postman@dosje.local\",\"password\":\"secret123\",\"deviceFingerprint\":\"postman\"}"
+        }
+      }
+    },
+    {
+      "name": "11 - Login invalid (400)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/login",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"nope\",\"password\":\"x\",\"deviceFingerprint\":\"postman\"}"
+        }
+      }
+    },
+    {
+      "name": "12 - Refresh",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/refresh",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\"refreshToken\":\"postman-refresh\"}" }
+      }
+    },
+    {
+      "name": "13 - Logout (401 without token)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/auth/logout" }
+    },
+    {
+      "name": "14 - Logout",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/auth/logout",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "20 - Users create",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const id = pm.response.json().id;",
+              "if (id) pm.collectionVariables.set('userId', id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/users",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"email\":\"e2e-{{$timestamp}}@dosje.local\",\"password\":\"secret123\",\"name\":\"Postman User\",\"role\":\"PMU_OFFICER\"}"
+        }
+      }
+    },
+    {
+      "name": "21 - Users list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users?page=1&limit=5",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "22 - Users get",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "23 - Users patch",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"name\":\"Postman Updated\"}" }
+      }
+    },
+    {
+      "name": "24 - Users delete",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/users/{{userId}}",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "30 - Inspections assign",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/inspections/assign",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"inspectionId\":\"{{inspectionId}}\",\"district\":\"Central\"}"
+        }
+      }
+    },
+    {
+      "name": "31 - Inspections list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/inspections?status=SCHEDULED",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "32 - Inspection start",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/inspections/{{inspectionId}}/start",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "40 - Media presigned-url",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/media/presigned-url",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"inspectionId\":\"{{inspectionId}}\",\"reportId\":\"rep-1\",\"filename\":\"photo 1.jpg\"}"
+        }
+      }
+    },
+    {
+      "name": "50 - Anomalies list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/anomalies",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "51 - Anomaly assign",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/anomalies/{{anomalyId}}/assign",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"adminId\":\"admin-1\"}" }
+      }
+    },
+    {
+      "name": "52 - Anomaly status",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/anomalies/{{anomalyId}}/status",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"status\":\"INVESTIGATING\"}" }
+      }
+    },
+    {
+      "name": "60 - Analytics dashboard",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/analytics/dashboard",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "61 - Analytics anomalies",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/analytics/anomalies",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "62 - Analytics inspections",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/analytics/inspections",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "70 - CCTV create",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/cctv",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\":\"gate-cam\",\"rtspUrl\":\"rtsp://cam:pw@10.0.0.5/live\",\"latitude\":28.61,\"longitude\":77.2}"
+        }
+      }
+    },
+    {
+      "name": "71 - CCTV list",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/cctv",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    },
+    {
+      "name": "72 - CCTV get",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/cctv/{{cctvId}}",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+      }
+    }
+  ]
+}

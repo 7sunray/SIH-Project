@@ -12,31 +12,41 @@ export class SchedulerService {
     @InjectQueue(QUEUES.ANALYTICS_AGGREGATE) private analyticsQueue: Queue,
   ) {}
 
+  /**
+   * Idempotent scheduler sync: upserting by stable id updates the template
+   * in place, and same-name leftovers from older schedule shapes are removed.
+   */
+  private async syncScheduler(
+    queue: Queue,
+    id: string,
+    repeat: { every?: number; pattern?: string },
+    jobName: string,
+  ) {
+    try {
+      const schedulers = await queue.getJobSchedulers();
+      for (const scheduler of schedulers) {
+        if (scheduler.name === jobName && scheduler.id !== id && scheduler.id) {
+          await queue.removeJobScheduler(scheduler.id);
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`scheduler cleanup skipped: ${(err as Error).message}`);
+    }
+    await queue.upsertJobScheduler(id, repeat, { name: jobName, data: {} });
+  }
+
   async registerCronJobs() {
     this.logger.log('Registering background cron jobs...');
 
-    // Schedule CCTV Health Check to run every 5 minutes
-    await this.cctvQueue.add(
-      'health-ping',
-      {},
-      {
-        jobId: 'cron-cctv-health',
-        repeat: {
-          pattern: '*/5 * * * *',
-        },
-      } as Record<string, any>,
-    );
+    // CCTV health ping every 30s (per-ops checklist).
+    await this.syncScheduler(this.cctvQueue, 'cron-cctv-health', { every: 30_000 }, 'health-ping');
 
     // Schedule Analytics Aggregation to run daily at midnight
-    await this.analyticsQueue.add(
+    await this.syncScheduler(
+      this.analyticsQueue,
+      'cron-analytics-aggregate',
+      { pattern: '0 0 * * *' },
       'daily-aggregate',
-      {},
-      {
-        jobId: 'cron-analytics-aggregate',
-        repeat: {
-          pattern: '0 0 * * *',
-        },
-      } as Record<string, any>,
     );
 
     this.logger.log('Cron jobs successfully registered.');

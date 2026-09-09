@@ -1,13 +1,14 @@
 import { Module } from '@nestjs/common';
 import { AnomaliesController } from './anomalies.controller';
 import { AnomaliesService } from './anomalies.service';
-import { PrismaService } from '../../database/prisma.service';
+import { DatabaseModule } from '../../database/database.module';
 import { AuthModule } from '../auth/auth.module';
+import { WebsocketModule } from '../../websocket/websocket.module';
 @Module({
   controllers: [AnomaliesController],
-  providers: [AnomaliesService, PrismaService],
+  providers: [AnomaliesService],
   exports: [AnomaliesService],
-  imports: [AuthModule],
+  imports: [DatabaseModule, AuthModule, WebsocketModule],
 })
 export class AnomaliesModule {}
 

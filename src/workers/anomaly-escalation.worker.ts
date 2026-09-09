@@ -1,15 +1,11 @@
-import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Job } from 'bullmq';
 import { QUEUES } from '../queues/queue-definitions';
-import { AnomalyProcessWorker } from './anomaly-process.worker';
 
-@Module({
-  imports: [
-    BullModule.registerQueue({
-      name: QUEUES.ANOMALY_PROCESS,
-    }),
-  ],
-  providers: [AnomalyProcessWorker],
-  exports: [BullModule],
-})
-export class AnomalyProcessModule {}
+@Processor(QUEUES.ANOMALY_ESCALATION)
+export class AnomalyEscalationWorker extends WorkerHost {
+  async process(job: Job<any, any, string>): Promise<any> {
+    console.log(`Processing anomaly escalation job: ${job.id}`);
+    return { escalated: true, anomalyId: job.data.anomalyId };
+  }
+}

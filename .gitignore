@@ -5,3 +5,5 @@ node_modules
 /src/generated/prisma
 dist
 /generated
+# Redis snapshots accidentally written to the repo root
+*.rdb

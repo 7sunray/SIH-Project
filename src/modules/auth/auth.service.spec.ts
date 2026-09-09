@@ -6,7 +6,7 @@ describe('AuthService', () => {
   let service: AuthService;
 
   const mockJwtService = {
-    sign: jest.fn(() => 'mocked_jwt_token'),
+    sign: jest.fn(() => 'mocked_jwt-token'),
   };
 
   beforeEach(async () => {
@@ -29,8 +29,8 @@ describe('AuthService', () => {
     
     const result = await service.login(loginDto);
     
-    expect(result.accessToken).toEqual('mocked_jwt_token');
-    expect(result.refreshToken).toEqual('mocked_jwt_token');
+    expect(result.accessToken).toEqual('mocked_jwt-token');
+    expect(result.refreshToken).toEqual('mocked_jwt-token');
   });
 
   it('Test refresh with valid token -> returns new access token', async () => {

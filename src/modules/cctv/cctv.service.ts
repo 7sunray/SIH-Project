@@ -3,15 +3,18 @@ import { PrismaService } from '../../database/prisma.service';
 import { CreateCctvDto } from './create-cctv.dto';
 import { UpdateCctvDto } from './update-cctv.dto';
 import { QueryCctvDto } from './query-cctv.dto';
-import { encrypt, decrypt } from '../../common/utils/encryption.util';
+import { EncryptionService } from '../../common/services/encryption.service';
 
 @Injectable()
 export class CctvService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
 
   async create(createDto: CreateCctvDto) {
     const { name, rtspUrl, status, latitude, longitude } = createDto;
-    const encryptedUrl = encrypt(rtspUrl);
+    const encryptedUrl = this.encryption.encrypt(rtspUrl);
 
     return this.prisma.$executeRaw`
       INSERT INTO cctv_feeds (id, name, rtsp_url, status, location, created_at)
@@ -28,33 +31,34 @@ export class CctvService {
 
     let results: any[] = [];
 
+    // NOTE: columns are camelCase in this schema; there is no location column.
     if (search && status) {
       const searchTerm = `%${search}%`;
       results = await this.prisma.$queryRaw`
-        SELECT id, name, rtsp_url, status, ST_AsText(location) as location 
-        FROM cctv_feeds 
-        WHERE (name ILIKE ${searchTerm}) AND status = ${status}::text
+        SELECT id, name, "rtspUrl" AS rtsp_url, status
+        FROM cctv_feeds
+        WHERE (name ILIKE ${searchTerm}) AND status::text = ${status}
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else if (search) {
       const searchTerm = `%${search}%`;
       results = await this.prisma.$queryRaw`
-        SELECT id, name, rtsp_url, status, ST_AsText(location) as location 
-        FROM cctv_feeds 
+        SELECT id, name, "rtspUrl" AS rtsp_url, status
+        FROM cctv_feeds
         WHERE name ILIKE ${searchTerm}
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else if (status) {
       results = await this.prisma.$queryRaw`
-        SELECT id, name, rtsp_url, status, ST_AsText(location) as location 
-        FROM cctv_feeds 
-        WHERE status = ${status}::text
+        SELECT id, name, "rtspUrl" AS rtsp_url, status
+        FROM cctv_feeds
+        WHERE status::text = ${status}
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else {
       results = await this.prisma.$queryRaw`
-        SELECT id, name, rtsp_url, status, ST_AsText(location) as location 
-        FROM cctv_feeds 
+        SELECT id, name, "rtspUrl" AS rtsp_url, status
+        FROM cctv_feeds
         LIMIT ${limit} OFFSET ${offset};
       `;
     }
@@ -62,21 +66,21 @@ export class CctvService {
     // Decrypt rtsp_url for safe consumption
     return results.map((feed) => ({
       ...feed,
-      rtsp_url: feed.rtsp_url ? decrypt(feed.rtsp_url) : null,
+      rtsp_url: feed.rtsp_url ? this.encryption.decrypt(feed.rtsp_url) : null,
     }));
   }
 
   async findOne(id: string) {
     const results: any[] = await this.prisma.$queryRaw`
-      SELECT id, name, rtsp_url, status, ST_AsText(location) as location 
-      FROM cctv_feeds 
+      SELECT id, name, "rtspUrl" AS rtsp_url, status
+      FROM cctv_feeds
       WHERE id = ${id}::uuid;
     `;
     if (!results || results.length === 0) return null;
     const feed = results[0];
     return {
       ...feed,
-      rtsp_url: feed.rtsp_url ? decrypt(feed.rtsp_url) : null,
+      rtsp_url: feed.rtsp_url ? this.encryption.decrypt(feed.rtsp_url) : null,
     };
   }
 

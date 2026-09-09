@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsNumber } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateInstituteDto {
   @IsString()
@@ -9,9 +10,11 @@ export class CreateInstituteDto {
   @IsNotEmpty()
   address: string;
 
+  @Type(() => Number)
   @IsNumber()
   latitude: number;
 
+  @Type(() => Number)
   @IsNumber()
   longitude: number;
 }
