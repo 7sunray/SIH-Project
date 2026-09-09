@@ -153,6 +153,7 @@
             const workspaceItems = [
                 { id: 'dashboard', label: 'Dashboard', icon: <Icons.Dashboard /> },
                 { id: 'inspection', label: 'Field inspection', icon: <Icons.Clipboard /> },
+                { id: 'cctv', label: 'Live CCTV', icon: <Icons.CCTV /> },
                 { id: 'alerts', label: 'AI anomaly alerts', icon: <Icons.Alert />, badge: '7' },
                 { id: 'institutes', label: 'Institutes', icon: <Icons.Building /> },
             ];
@@ -175,7 +176,7 @@
                         <p className="text-[0.65rem] font-extrabold text-slate-400 tracking-wider mb-2 px-3">WORKSPACE</p>
                         {workspaceItems.map(item => (
                             <button key={item.id} onClick={() => {
-                                const routes = { dashboard: 'dashboard.html', inspection: 'field.html', cctv: 'cctv_feed.html', alerts: 'ai_anomaly.html' };
+                                const routes = { dashboard: 'dashboard.html', inspection: 'field.html', cctv: 'cctv_feed.html', alerts: 'ai_anomaly.html', institutes: 'institutes_directory.html' };
                                 if (routes[item.id]) window.location.href = routes[item.id];
                             }} className={`sidebar-link w-full flex items-center justify-between px-3 py-3 rounded-xl text-[0.9rem] font-bold ${active === item.id ? 'active' : 'text-slate-500'}`}>
                                 <div className="flex items-center gap-3"><span className="opacity-80">{item.icon}</span> {item.label}</div>
@@ -187,7 +188,10 @@
                     <div className="flex flex-col gap-1 mt-auto pb-4">
                         <p className="text-[0.65rem] font-extrabold text-slate-400 tracking-wider mb-2 px-3">MANAGEMENT</p>
                         {managementItems.map(item => (
-                            <button key={item.id} onClick={() => {}} className={`sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[0.9rem] font-bold ${active === item.id ? 'active' : 'text-slate-500'}`}>
+                            <button key={item.id} onClick={() => {
+                                const routes = { assign: 'inspections.html', video: 'video_verification.html' };
+                                if (routes[item.id]) window.location.href = routes[item.id];
+                            }} className={`sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[0.9rem] font-bold ${active === item.id ? 'active' : 'text-slate-500'}`}>
                                 <span className="opacity-80">{item.icon}</span> {item.label}
                             </button>
                         ))}
