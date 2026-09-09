@@ -29,18 +29,18 @@
                     },
                     animation: {
                         'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                        'radar-sweep': 'sweep 3s linear infinite',
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'page-enter': 'pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                         'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         slideUp: {
                             '0%': { opacity: '0', transform: 'translateY(25px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
                         },
-                        sweep: {
-                            '0%': { transform: 'translate(-50%, -50%) rotate(0deg)' },
-                            '100%': { transform: 'translate(-50%, -50%) rotate(360deg)' },
+                        pageEnter: {
+                            '0%': { opacity: '0', transform: 'translateY(15px) scale(0.995)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
                         },
                         float: {
                             '0%, 100%': { transform: 'translateY(0)' },
@@ -52,26 +52,26 @@
         }
     </script>
     
-    <!-- Highly Stable Cloudflare CDNs -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <!-- Ultra-Stable React & Babel CDNs -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+    <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
     
     <style>
-        body { background-color: theme('colors.surface'); color: #0f172a; }
+        body { background-color: #f8fafc; color: #0f172a; }
         .sidebar-link { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
         .sidebar-link:hover:not(.active) { background-color: #f1f5f9; transform: translateX(6px); }
-        .sidebar-link.active { background-color: theme('colors.primary.700'); color: white; box-shadow: 0 4px 14px rgba(15, 118, 110, 0.25); }
+        .sidebar-link.active { background-color: #0f766e; color: white; box-shadow: 0 4px 14px rgba(15, 118, 110, 0.25); }
         .sidebar-link.active svg { stroke: white; }
+        .animate-page-enter,
+        .animate-slide-up { animation: none !important; }
         
         .custom-shadow { box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.08); }
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); }
         
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Premium Custom Scrollbar */
         .thin-scrollbar::-webkit-scrollbar { width: 5px; }
         .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .thin-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -85,66 +85,53 @@
             position: relative; overflow: hidden;
         }
         .hero-pattern::before {
-            content: ''; position: absolute;
-            top: -50%; left: -50%; width: 200%; height: 200%;
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
             background: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.04"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
             animation: float 25s linear infinite;
         }
 
-        .dashboard-shell {
-            background-color: #f8fafc;
-            background-image: linear-gradient(rgba(15, 118, 110, 0.035) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(15, 118, 110, 0.035) 1px, transparent 1px),
-                              radial-gradient(circle at 92% 18%, rgba(45, 212, 191, 0.12), transparent 24rem),
-                              radial-gradient(circle at 8% 58%, rgba(14, 165, 233, 0.08), transparent 22rem);
-            background-size: 32px 32px, 32px 32px, auto, auto;
+        /* Custom Dropdown Styling */
+        select.custom-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.7rem center;
+            background-size: 1em;
         }
-        .control-card { position: relative; overflow: hidden; }
-        .control-card::before {
-            content: ''; position: absolute; inset: 0 0 auto; height: 4px;
-            background: linear-gradient(90deg, #0f766e, #2dd4bf); opacity: 0;
-            transition: opacity 0.25s ease;
-        }
-        .control-card:hover::before { opacity: 1; }
-        .live-pulse { animation: livePulse 2s ease-in-out infinite; }
-        @keyframes livePulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
-            50% { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
-        }
-        .feed-frame::after {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(120deg, rgba(15, 118, 110, 0.22), transparent 45%, rgba(15, 23, 42, 0.24));
-            pointer-events: none;
-        }
-        .stagger-1 { animation-delay: 0.05s; }
-        .stagger-2 { animation-delay: 0.1s; }
-        .stagger-3 { animation-delay: 0.15s; }
-        .stagger-4 { animation-delay: 0.2s; }
 
-        /* Radar Map Animation */
-        .map-bg {
-            background-color: #f0f9ff;
-            background-image: radial-gradient(#bae6fd 2px, transparent 2px);
-            background-size: 28px 28px;
-        }
-        .pulse-dot {
-            width: 18px; height: 18px; background-color: #0ea5e9;
-            border-radius: 50%; border: 3px solid white;
-            position: relative; z-index: 10; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
-        }
-        .radar-sweep {
-            position: absolute; top: 50%; left: 50%;
-            width: 180px; height: 180px; transform-origin: 0 0;
-            background: conic-gradient(from 0deg, rgba(14, 165, 233, 0) 70%, rgba(14, 165, 233, 0.3) 100%);
-            border-radius: 50%;
-        }
+        /* Staggered animations */
+        .stagger-1 { animation-delay: 0.05s; }
+        .stagger-2 { animation-delay: 0.10s; }
+        .stagger-3 { animation-delay: 0.15s; }
+        .stagger-4 { animation-delay: 0.20s; }
+        .stagger-5 { animation-delay: 0.25s; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // ============ ERROR BOUNDARY ============
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, errorInfo: null };
+            }
+            static getDerivedStateFromError(error) { return { hasError: true, errorInfo: error }; }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="p-10 m-10 bg-red-50 border-2 border-red-500 rounded-xl text-red-800 font-mono">
+                            <h1 className="text-2xl font-bold mb-4">React Rendering Error</h1>
+                            <pre className="bg-white p-4 rounded shadow overflow-auto">{this.state.errorInfo.toString()}</pre>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
 
         // ============ CUSTOM ICONS ============
         const Icons = {
@@ -157,32 +144,25 @@
             Calendar: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 14v6"/><path d="M9 17h6"/></svg>,
             Video: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
             Home: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
-            MapPin: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
-            Crosshair: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>,
+            MapPin: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
             Shield: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
-            Bell: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+            Bell: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
             ArrowLeft: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
             ChevronRight: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
             ChevronDown: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>,
-            CheckCircleSolid: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="#0f766e"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#ffffff"/></svg>,
             Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            Sliders: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>,
             Clock: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
             CheckCircle: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
-            MapIcon: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>,
-            ListIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+            ClipboardList: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>,
+            CalendarGrid: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="18"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="16" y1="14" x2="16" y2="18"/></svg>,
             UsersIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            AlertOctagon: () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            CheckCircleSolid: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="#0f766e"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#ffffff"/></svg>,
             CameraIcon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
-            VideoIcon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
-            DocumentIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
-            ChartIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-            TrendUp: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
-            TrendDown: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>,
-            ActivityFeed: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
-            Refresh: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.92-10.44l5.66 5.66"/></svg>,
-            Phone: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
-            Brain: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 0 7 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 2.5 2.5 0 0 0 2.96-3.08 2.5 2.5 0 0 0-2.83-4.14A2.5 2.5 0 0 0 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 1 17 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 2.5 2.5 0 0 1-2.96-3.08 2.5 2.5 0 0 1 2.83-4.14A2.5 2.5 0 0 1 14.5 2Z"/></svg>,
             Expand: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
-            ShieldCheck: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            Monitor: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+            Settings: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         };
 
         // ============ SIDEBAR COMPONENT ============
@@ -191,7 +171,7 @@
                 { id: 'dashboard', label: 'Dashboard', icon: <Icons.Dashboard /> },
                 { id: 'inspection', label: 'Field inspection', icon: <Icons.Clipboard /> },
                 { id: 'cctv', label: 'Live CCTV', icon: <Icons.CCTV /> },
-                { id: 'alerts', label: 'AI anomaly alerts', icon: <Icons.Alert />, badge: '7' },
+                { id: 'alerts', label: 'AI anomaly alerts', icon: <Icons.Alert /> },
                 { id: 'institutes', label: 'Institutes', icon: <Icons.Building /> },
             ];
 
@@ -213,25 +193,8 @@
                     <div className="flex flex-col gap-1 mb-8">
                         <p className="text-[0.65rem] font-extrabold text-slate-400 tracking-wider mb-2 px-3">WORKSPACE</p>
                         {workspaceItems.map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => {
-                                    const routes = { dashboard: 'dashboard.html', inspection: 'field.html', cctv: 'cctv_feed.html', alerts: 'ai_anomaly.html', institutes: 'institutes_directory.html' };
-                                    if (routes[item.id]) window.location.href = routes[item.id];
-                                }}
-                                className={`sidebar-link w-full flex items-center justify-between px-3 py-3 rounded-xl text-[0.9rem] font-bold ${
-                                    active === item.id ? 'active' : 'text-slate-500'
-                                }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <span className="opacity-80">{item.icon}</span>
-                                    {item.label}
-                                </div>
-                                {item.badge && (
-                                    <span className={`text-[0.65rem] px-2 py-0.5 rounded-full font-bold shadow-sm ${active === item.id ? 'bg-white/20 text-white' : 'bg-emerald-100 text-primary-700'}`}>
-                                        {item.badge}
-                                    </span>
-                                )}
+                            <button key={item.id} onClick={() => setActive(item.id)} className={`sidebar-link w-full flex items-center justify-between px-3 py-3 rounded-xl text-[0.9rem] font-bold transition-all duration-200 ${active === item.id ? 'bg-primary-700 text-white shadow-[0_4px_14px_rgba(15,118,110,0.25)]' : 'text-slate-500 hover:bg-slate-50 hover:translate-x-1.5'}`}>
+                                <div className="flex items-center gap-3"><span className="opacity-80">{item.icon}</span> {item.label}</div>
                             </button>
                         ))}
                     </div>
@@ -239,18 +202,8 @@
                     <div className="flex flex-col gap-1 mt-auto pb-4">
                         <p className="text-[0.65rem] font-extrabold text-slate-400 tracking-wider mb-2 px-3">MANAGEMENT</p>
                         {managementItems.map(item => (
-                            <button
-                                key={item.id}
-                                onClick={() => {
-                                    const routes = { assign: 'inspections.html', video: 'video_verification.html' };
-                                    if (routes[item.id]) window.location.href = routes[item.id];
-                                }}
-                                className={`sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[0.9rem] font-bold ${
-                                    active === item.id ? 'active' : 'text-slate-500'
-                                }`}
-                            >
-                                <span className="opacity-80">{item.icon}</span>
-                                {item.label}
+                            <button key={item.id} onClick={() => setActive(item.id)} className={`sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[0.9rem] font-bold transition-all duration-200 ${active === item.id ? 'bg-primary-700 text-white shadow-[0_4px_14px_rgba(15,118,110,0.25)]' : 'text-slate-500 hover:bg-slate-50 hover:translate-x-1.5'}`}>
+                                <span className="opacity-80">{item.icon}</span> {item.label}
                             </button>
                         ))}
                     </div>
@@ -258,193 +211,182 @@
             );
         }
 
-        // ============ PAGE 3: LIVE CCTV & AI ALERTS ============
-        function CCTVPage({ onNavigate }) {
-            const [filter, setFilter] = useState('All Alerts (7)');
-            const filters = ['All Alerts (7)', 'Critical (2)', 'High (3)', 'Medium (2)'];
+        // ============ PAGE 3: LIVE CCTV (Based on your screenshot) ============
+        function LiveCCTVPage({ onNavigate }) {
+            const [filter, setFilter] = useState('All Feeds (18)');
+            const [search, setSearch] = useState('');
+            
+            const filters = [
+                { id: 'All Feeds (18)', dot: 'bg-emerald-400' }, 
+                { id: 'Live (15)' }, 
+                { id: 'Offline (3)' }, 
+                { id: 'AI Flagged (4)' }
+            ];
 
             const mockFeeds = [
                 { 
-                    id: 'CAM-01', type: 'Critical', title: 'CCTV feed offline for 6+ hours', loc: 'Nirmal Jyoti Disability Rehab Centre', 
-                    desc: 'Camera-03-DORM has reported no signal since 03:12 IST. No maintenance ticket was raised by the institute administrator.', 
-                    conf: 96, time: '05:37 PM', date: '6 Sept 2026', color: 'red',
-                    img: 'https://images.unsplash.com/photo-1541888046425-d81bb19240f5?auto=format&fit=crop&w=600&q=80' 
+                    id: 'CAM-01', type: 'Live', title: 'Main hall', loc: 'Rukmini Shelter Home for Women', 
+                    statusColor: 'bg-emerald-500', statusText: 'text-emerald-600',
+                    time: '10:42 IST', img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80' 
                 },
                 { 
-                    id: 'CAM-02', type: 'Critical', title: 'Beneficiary headcount mismatch', loc: 'Rukmini Shelter Home for Women', 
-                    desc: 'CCTV person-count (31) is significantly lower than the declared attendance register (42) for three consecutive days.', 
-                    conf: 91, time: '03:48 PM', date: '6 Sept 2026', color: 'red',
-                    img: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80' 
+                    id: 'CAM-02', type: 'Live', title: 'Dormitory', loc: 'Rukmini Shelter Home for Women', 
+                    statusColor: 'bg-emerald-500', statusText: 'text-emerald-600',
+                    time: '10:42 IST', img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80' 
                 },
                 { 
-                    id: 'CAM-03', type: 'High', title: 'Unregistered visitor after hours', loc: 'Nambikkai De-addiction Centre', 
-                    desc: 'Entrance camera detected movement at 01:40 IST with no matching entry in the visitor log.', 
-                    conf: 87, time: '01:40 PM', date: '6 Sept 2026', color: 'amber',
-                    img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80' 
+                    id: 'CAM-03', type: 'Live', title: 'Entrance', loc: 'Prakash Old Age Care Centre', 
+                    statusColor: 'bg-emerald-500', statusText: 'text-emerald-600',
+                    time: '10:42 IST', img: 'https://images.unsplash.com/photo-1541888046425-d81bb19240f5?auto=format&fit=crop&w=600&q=80' 
                 },
                 { 
-                    id: 'CAM-04', type: 'High', title: 'Staff attendance below sanctioned ratio', loc: 'Nirmal Jyoti Disability Rehab Centre', 
-                    desc: 'Only 6 of 10 sanctioned staff have badged in this week, falling below the mandated caregiver ratio.', 
-                    conf: 74, time: '11:22 AM', date: '5 Sept 2026', color: 'amber',
-                    img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80' 
-                },
-                { 
-                    id: 'CAM-05', type: 'Medium', title: 'Unusual movement detected', loc: 'Asha Deepthi Children\'s Home', 
-                    desc: 'AI detected unusual movement in the restricted zone near the back gate during quiet hours.', 
-                    conf: 68, time: '09:15 AM', date: '5 Sept 2026', color: 'amber',
-                    img: 'https://images.unsplash.com/photo-1584824486509-112e4181f1b6?auto=format&fit=crop&w=600&q=80' 
+                    id: 'CAM-04', type: 'AI Flagged', title: 'Dining hall', loc: 'Rukmini Shelter Home for Women', 
+                    statusColor: 'bg-red-500', statusText: 'text-red-600', subBadge: 'Meal service active',
+                    time: '10:42 IST', img: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80' 
                 }
             ];
 
-            const filteredFeeds = filter === 'All Alerts (7)' ? mockFeeds : mockFeeds.filter(f => filter.includes(f.type));
-
-            const getColorClasses = (color) => {
-                if(color === 'red') return { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', fill: 'bg-red-500' };
-                if(color === 'amber') return { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-200', fill: 'bg-amber-500' };
-                return { bg: 'bg-primary-50', text: 'text-primary-600', border: 'border-primary-200', fill: 'bg-primary-500' };
-            };
+            const filteredFeeds = filter === 'All Feeds (18)' ? mockFeeds : mockFeeds.filter(f => filter.includes(f.type));
 
             return (
-                <div className="dashboard-shell flex-1 w-full min-h-screen relative pb-20">
+                <div className="flex-1 w-full min-h-screen relative pb-10 bg-surface">
+                    
+                    {/* Premium Hero Header */}
                     <div className="hero-pattern text-white pt-10 pb-36 px-8 lg:px-12 w-full rounded-bl-[2.5rem] rounded-br-[2.5rem] shadow-lg relative z-0">
                         <div className="flex justify-between items-center text-sm font-semibold mb-14 max-w-7xl mx-auto relative z-10">
-                            <div className="text-emerald-100/70 tracking-wide uppercase text-xs cursor-pointer hover:text-white transition" onClick={() => window.location.href = 'dashboard.html'}>
-                                Workspace &nbsp;&gt;&nbsp; <span className="text-white font-bold">Live CCTV & AI Alerts</span>
-                            </div>
-                            <div className="flex items-center gap-5">
-                                <div className="w-11 h-11 rounded-full bg-white text-primary-800 font-black flex items-center justify-center text-sm tracking-tight shadow-xl border-[3px] border-emerald-100 cursor-pointer hover:scale-105 transition-transform">
-                                    US
-                                </div>
+                            <div className="flex items-center gap-4">
+                                <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition backdrop-blur-md border border-white/20 shadow-sm" onClick={() => onNavigate('dashboard')}><Icons.ArrowLeft /></button>
+                                <div className="text-emerald-100/70 tracking-wide uppercase text-xs cursor-pointer hover:text-white transition" onClick={() => onNavigate('dashboard')}>Workspace &nbsp;&gt;&nbsp; <span className="text-white font-bold">Live CCTV</span></div>
                             </div>
                         </div>
 
-                        <div className="max-w-7xl mx-auto relative z-10 animate-slide-up flex justify-between items-end">
+                        <div className="max-w-7xl mx-auto relative z-10 animate-slide-up flex justify-between items-center">
                             <div>
-                                <div className="flex items-center gap-3 mb-4">
-                                    <span className="live-pulse inline-flex items-center gap-2 rounded-full bg-emerald-400/20 border border-emerald-200/30 px-3 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.18em] text-emerald-100"><span className="w-2 h-2 rounded-full bg-emerald-300"></span> Live command view</span>
-                                    <span className="text-xs font-bold text-emerald-100/70">Updated 2 min ago</span>
-                                </div>
-                                <h2 className="text-4xl lg:text-5xl font-black mb-3 tracking-tight text-white drop-shadow-sm">AI Anomaly Alerts</h2>
-                                <p className="text-emerald-100/90 text-lg font-medium leading-relaxed">Automatically flagged irregularities across all active cameras</p>
+                                <h2 className="text-4xl lg:text-5xl font-black mb-3 tracking-tight text-white drop-shadow-sm">Live CCTV</h2>
+                                <p className="text-emerald-100/90 text-lg font-medium leading-relaxed">Real-time feeds across active institutes</p>
                             </div>
-                            {/* Graphic matching the screenshot */}
-                            <div className="hidden lg:flex w-36 h-36 bg-white/10 rounded-[2rem] backdrop-blur-md border border-white/20 items-center justify-center shadow-lg transform rotate-3 hover:rotate-0 transition-transform">
-                                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                            <div className="hidden lg:flex w-32 h-32 bg-white/10 rounded-[2rem] backdrop-blur-md border border-white/20 items-center justify-center shadow-lg transform rotate-[-12deg] hover:rotate-0 transition-transform">
+                                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
                             </div>
                         </div>
                     </div>
 
-                    <div className="px-6 lg:px-12 -mt-20 space-y-8 relative z-10 max-w-7xl mx-auto">
+                    <div className="px-6 lg:px-12 -mt-20 relative z-10 max-w-7xl mx-auto">
                         
-                        <div className="glass-card rounded-[1.25rem] p-3 pl-5 custom-shadow border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4 animate-slide-up">
-                            <div className="flex items-center gap-3 text-slate-400 w-full md:w-1/2">
+                        {/* Floating Control Bar */}
+                        <div className="glass-card rounded-[1.5rem] p-4 lg:p-6 custom-shadow border border-white/50 flex flex-col lg:flex-row items-center justify-between gap-6 mb-8 animate-slide-up stagger-1">
+                            <div className="flex items-center gap-3 text-slate-400 w-full lg:w-1/2 bg-slate-50/50 px-4 py-3 rounded-xl border border-slate-200">
                                 <Icons.Search />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search by location, event, or time..." 
-                                    className="w-full bg-transparent text-[0.95rem] text-slate-800 font-bold outline-none placeholder:font-semibold placeholder:text-slate-400"
-                                />
+                                <input type="text" placeholder="Search institutes, IDs, district..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent text-[0.95rem] text-slate-800 font-bold outline-none placeholder:font-semibold placeholder:text-slate-400" />
                             </div>
-                            <div className="flex items-center gap-4 text-slate-400 border-l border-slate-200 pl-4">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                            <div className="flex items-center gap-4 text-slate-400 border-l border-slate-200 pl-4 cursor-pointer hover:text-primary-700 transition-colors">
+                                <Icons.Sliders />
                             </div>
                         </div>
 
-                        <div className="flex gap-3 overflow-x-auto no-scrollbar w-full pt-3 animate-slide-up">
-                            {filters.map(f => (
-                                <button 
-                                    key={f} onClick={() => setFilter(f)}
-                                    className={`px-6 py-3 rounded-[1.25rem] text-xs tracking-wide font-extrabold whitespace-nowrap transition-all border-2 shadow-sm ${
-                                        filter === f 
-                                        ? 'bg-primary-800 text-white border-primary-800 scale-[1.02]' 
-                                        : 'bg-white text-primary-700 border-emerald-100 hover:border-primary-300 hover:bg-emerald-50'
-                                    }`}
-                                >
-                                    {f}
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className="control-card bg-white rounded-[1.5rem] p-6 lg:p-8 custom-shadow border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6 animate-slide-up">
-                            <div className="flex items-center gap-5 w-full md:w-auto">
-                                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-primary-700 flex items-center justify-center flex-shrink-0 border border-emerald-100 shadow-inner"><Icons.Brain /></div>
-                                <div>
-                                    <h3 className="text-xl font-extrabold text-slate-800 tracking-tight">AI Anomaly Detection</h3>
-                                    <p className="text-sm text-slate-500 font-semibold mt-0.5">Real-time analysis across all active cameras</p>
-                                </div>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-6 md:gap-10 w-full md:w-auto border-t md:border-t-0 border-slate-100 pt-4 md:pt-0">
-                                <div className="text-center"><p className="text-2xl font-black text-primary-700 mb-1 flex items-center gap-2 justify-center"><Icons.Shield /> 7</p><p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-wider">Total Alerts</p></div>
-                                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
-                                <div className="text-center"><p className="text-2xl font-black text-red-600 mb-1 flex items-center gap-2 justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 2</p><p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-wider">Critical</p></div>
-                                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
-                                <div className="text-center"><p className="text-2xl font-black text-amber-500 mb-1 flex items-center gap-2 justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 3</p><p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-wider">High</p></div>
-                                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
-                                <div className="text-center"><p className="text-2xl font-black text-yellow-500 mb-1 flex items-center gap-2 justify-center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 2</p><p className="text-[0.65rem] text-slate-400 font-bold uppercase tracking-wider">Medium</p></div>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            {filteredFeeds.map((feed, idx) => {
-                                const colors = getColorClasses(feed.color);
+                        {/* Filters */}
+                        <div className="flex gap-2.5 overflow-x-auto no-scrollbar w-full animate-slide-up stagger-2 mb-8">
+                            {filters.map(f => {
+                                const isActive = filter === f.id;
                                 return (
-                                    <div key={feed.id} className={`control-card bg-white rounded-[1.5rem] overflow-hidden custom-shadow border border-slate-100 flex flex-col group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 stagger-${(idx % 4) + 1} animate-slide-up`}>
+                                    <button 
+                                        key={f.id} onClick={() => setFilter(f.id)}
+                                        className={`px-6 py-3 rounded-[1.25rem] text-sm tracking-wide font-extrabold whitespace-nowrap transition-all border-2 shadow-sm flex items-center gap-2 ${
+                                            isActive 
+                                            ? 'bg-primary-800 text-white border-primary-800 scale-[1.02]' 
+                                            : 'bg-white text-primary-700 border-emerald-100 hover:border-primary-300 hover:bg-emerald-50'
+                                        }`}
+                                    >
+                                        {f.id}
+                                        {f.dot && isActive && <span className={`w-2 h-2 rounded-full ${f.dot}`}></span>}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Grid of CCTV Feeds */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-12">
+                            {filteredFeeds.map((feed, idx) => (
+                                <div key={feed.id} className={`bg-white rounded-[1.5rem] p-4 custom-shadow border border-slate-100 flex flex-col group hover:shadow-xl transition-all duration-300 stagger-${(idx % 4) + 1} animate-slide-up cursor-pointer`}>
+                                    
+                                    {/* Video Thumbnail Area */}
+                                    <div className="h-48 w-full relative overflow-hidden rounded-[1rem] bg-slate-900 mb-4">
+                                        <img src={feed.img} alt={feed.title} className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-700" />
                                         
-                                        <div className="feed-frame h-56 w-full relative overflow-hidden bg-slate-900">
-                                            <img src={feed.img} alt={feed.title} className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700" />
-                                            <div className="absolute top-4 left-4 bg-emerald-500/90 text-white px-2.5 py-1 rounded-lg text-[0.65rem] font-black tracking-widest uppercase flex items-center gap-2 shadow-lg backdrop-blur-sm z-10">
-                                                <div className="live-pulse w-1.5 h-1.5 rounded-full bg-white"></div> LIVE
-                                            </div>
-                                            <div className="absolute top-4 right-4 bg-black/40 text-white p-2 rounded-lg backdrop-blur-md cursor-pointer hover:bg-black/60 transition z-10"><Icons.Expand /></div>
-                                            <div className="absolute bottom-4 left-4 bg-black/45 text-white px-3 py-1.5 rounded-lg backdrop-blur-md flex items-center gap-2 text-xs font-bold z-10"><Icons.CameraIcon /> {feed.id}</div>
-                                            <div className="absolute bottom-4 right-4 bg-black/45 text-white px-2.5 py-1.5 rounded-lg backdrop-blur-md text-[0.65rem] font-black tracking-widest uppercase z-10">AI monitored</div>
+                                        {/* Overlays */}
+                                        <div className={`absolute top-3 left-3 text-white px-2.5 py-1 rounded-lg text-[0.65rem] font-black tracking-widest uppercase flex items-center gap-2 shadow-md backdrop-blur-md ${feed.type === 'Live' ? 'bg-emerald-500/90' : 'bg-red-500/90'}`}>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div> {feed.type}
                                         </div>
+                                        
+                                        <div className="absolute top-3 right-3 bg-black/60 text-white px-2.5 py-1 rounded-lg backdrop-blur-md text-[0.65rem] font-bold shadow-md">
+                                            {feed.time}
+                                        </div>
+                                        
+                                        <div className="absolute bottom-3 left-3 bg-black/50 text-white p-2 rounded-lg backdrop-blur-md">
+                                            <Icons.CameraIcon />
+                                        </div>
+                                        
+                                        <div className="absolute bottom-3 right-3 bg-black/50 text-white p-2 rounded-lg backdrop-blur-md hover:bg-black/70 transition">
+                                            <Icons.Expand />
+                                        </div>
+                                    </div>
 
-                                        <div className="p-6 md:p-8 flex-1 flex flex-col relative">
-                                            <div className="flex items-center justify-between mb-4 gap-3">
-                                                <div className={`px-3 py-1.5 rounded-lg text-xs font-extrabold flex items-center gap-1.5 border ${colors.bg} ${colors.text} ${colors.border}`}>
-                                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                                                    {feed.type}
-                                                </div>
-                                                <div className="flex items-center gap-3 text-slate-400 text-[0.65rem] font-bold whitespace-nowrap">
-                                                    <span className="flex items-center gap-1.5"><Icons.Calendar /> {feed.date}</span>
-                                                    <span className="flex items-center gap-1.5"><Icons.Clock /> {feed.time}</span>
-                                                </div>
+                                    {/* Content Details */}
+                                    <div className="flex-1 flex flex-col relative px-2">
+                                        <div className="flex items-start justify-between mb-1">
+                                            <h4 className="text-[1.05rem] font-extrabold text-slate-800 tracking-tight leading-snug pr-2 group-hover:text-primary-800 transition-colors">{feed.title}</h4>
+                                            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-50 border border-slate-100 ${feed.statusText} text-[0.65rem] font-bold tracking-wide uppercase shrink-0`}>
+                                                <div className={`w-1.5 h-1.5 rounded-full ${feed.statusColor}`}></div> {feed.type}
                                             </div>
+                                        </div>
+                                        
+                                        <p className="text-xs text-slate-500 font-semibold mb-3">{feed.loc}</p>
+                                        
+                                        {feed.subBadge && (
+                                            <div className="mb-3">
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded border bg-amber-50 text-amber-700 border-amber-200 text-[0.65rem] font-bold">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div> {feed.subBadge}
+                                                </span>
+                                            </div>
+                                        )}
 
-                                            <h4 className="text-xl font-extrabold text-slate-800 tracking-tight mb-2 group-hover:text-primary-800 transition-colors">{feed.title}</h4>
-                                            
-                                            <p className="text-xs text-slate-500 font-bold flex items-start gap-1.5 mb-4">
-                                                <span className="text-primary-700 flex-shrink-0"><Icons.MapPin /></span> <span>{feed.loc}</span>
-                                            </p>
-
-                                            <p className="text-sm text-slate-600 font-medium leading-relaxed mb-6 flex-1">
-                                                {feed.desc}
-                                            </p>
-
-                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-6 border-t border-slate-100">
-                                                <div className="flex-1 w-full">
-                                                    <div className="flex justify-between items-center text-[0.65rem] font-extrabold text-slate-400 uppercase tracking-widest mb-2">
-                                                        <span className="flex items-center gap-1.5"><Icons.Brain /> AI Confidence</span>
-                                                        <span>{feed.conf}%</span>
-                                                    </div>
-                                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                                        <div className={`h-full rounded-full ${colors.fill} transition-all duration-1000`} style={{width: `${feed.conf}%`}}></div>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3 w-full sm:w-auto">
-                                                    <button className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-extrabold text-primary-700 bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition shadow-sm flex items-center justify-center gap-2">
-                                                        <Icons.Phone /> Verify
-                                                    </button>
-                                                    <button className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-extrabold text-white bg-primary-800 hover:bg-primary-900 transition shadow-md flex items-center justify-center gap-2 whitespace-nowrap">
-                                                        <Icons.ShieldCheck /> Escalate
-                                                    </button>
-                                                </div>
+                                        {/* Action Bar */}
+                                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
+                                            <div className="flex gap-4 text-slate-400">
+                                                <div className="hover:text-primary-700 transition cursor-pointer"><Icons.CameraIcon /></div>
+                                                <div className="hover:text-primary-700 transition cursor-pointer"><Icons.Settings /></div>
+                                            </div>
+                                            <div className="text-slate-300 group-hover:text-primary-700 transition transform group-hover:translate-x-1">
+                                                <Icons.ChevronRight />
                                             </div>
                                         </div>
                                     </div>
-                                );
-                            })}
+                                </div>
+                            ))}
+                        </div>
+                        
+                        {/* System Status Desktop Footer (Adapted from Mobile Bottom Nav) */}
+                        <div className="bg-white rounded-[1.5rem] p-6 custom-shadow border border-slate-100 animate-slide-up grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
+                            <div className="flex flex-col items-center justify-center text-center p-2 border-r border-slate-100">
+                                <div className="text-primary-700 mb-2"><Icons.CheckCircle /></div>
+                                <h4 className="font-extrabold text-slate-800 text-sm">Live Monitoring</h4>
+                                <p className="text-xs text-slate-500 font-semibold mt-1">18 active feeds</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center p-2 md:border-r border-slate-100">
+                                <div className="text-primary-700 mb-2"><Icons.Alert /></div>
+                                <h4 className="font-extrabold text-slate-800 text-sm">AI Analysis</h4>
+                                <p className="text-xs text-slate-500 font-semibold mt-1">4 flagged events</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center p-2 border-r border-slate-100">
+                                <div className="text-primary-700 mb-2"><Icons.Video /></div>
+                                <h4 className="font-extrabold text-slate-800 text-sm">Quick Actions</h4>
+                                <p className="text-xs text-slate-500 font-semibold mt-1">Verify / Inspect</p>
+                            </div>
+                            <div className="flex flex-col items-center justify-center text-center p-2">
+                                <div className="text-primary-700 mb-2"><Icons.Shield /></div>
+                                <h4 className="font-extrabold text-slate-800 text-sm">24/7 Surveillance</h4>
+                                <p className="text-xs text-slate-500 font-semibold mt-1">For safer communities</p>
+                            </div>
                         </div>
 
                     </div>
@@ -455,31 +397,51 @@
         // ============ MAIN APP CONTROLLER ============
         function App() {
             const [activePage, setActivePage] = useState('cctv');
+            const routes = {
+                dashboard: 'dashboard.html',
+                inspection: 'field.html',
+                cctv: 'cctv_feed.html',
+                alerts: 'ai_anomaly.html',
+                institutes: 'institutes_directory.html',
+                assign: 'inspections.html',
+                video: 'video_verification.html'
+            };
+            const navigateToPage = (page) => {
+                if (routes[page]) window.location.href = routes[page];
+            };
+
+            useEffect(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, [activePage]);
 
             return (
                 <div className="flex min-h-screen bg-surface font-sans">
-                    <Sidebar active={activePage} setActive={setActivePage} />
-                    <div className="ml-64 w-full overflow-hidden">
-                        {activePage === 'dashboard' && <Dashboard onNavigateInspection={() => window.location.href = 'field.html'} />}
-                        {activePage === 'inspection' && <FieldInspection onNavigateDashboard={() => window.location.href = 'dashboard.html'} />}
-                        {activePage === 'alerts' && <CCTVPage onNavigate={setActivePage} />}
-                        {activePage === 'cctv' && <CCTVPage onNavigate={setActivePage} />}
-                        
-                        {['institutes', 'assign', 'video'].includes(activePage) && (
-                            <div className="p-12 text-center text-slate-500 font-medium w-full flex flex-col items-center justify-center min-h-[80vh]">
-                                <p className="text-3xl font-black text-slate-800 capitalize mb-3 tracking-tight">{activePage.replace('-', ' ')} Page</p>
-                                <p className="text-sm mt-4 cursor-pointer bg-white px-6 py-3 rounded-xl border border-slate-200 shadow-sm text-primary-700 font-extrabold hover:bg-slate-50 hover:shadow-md transition-all" onClick={() => window.location.href = 'dashboard.html'}>
-                                    Return to Dashboard
-                                </p>
-                            </div>
-                        )}
+                    <Sidebar active={activePage} setActive={navigateToPage} />
+                    <div className="ml-64 w-full overflow-hidden relative">
+                        <div key={activePage} className="animate-page-enter w-full min-h-screen origin-top">
+                            {activePage === 'cctv' && <LiveCCTVPage onNavigate={navigateToPage} />}
+                            
+                            {/* Fallbacks */}
+                            {activePage !== 'cctv' && (
+                                <div className="p-12 text-center text-slate-500 font-medium w-full flex flex-col items-center justify-center min-h-[80vh]">
+                                    <p className="text-3xl font-black text-slate-800 capitalize mb-3 tracking-tight">{activePage.replace('-', ' ')} Page</p>
+                                    <p className="text-sm mt-4 cursor-pointer bg-white px-6 py-3 rounded-xl border border-slate-200 shadow-sm text-primary-700 font-extrabold hover:bg-slate-50 hover:shadow-md transition-all" onClick={() => setActivePage('cctv')}>
+                                        Return to Live CCTV
+                                    </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             );
         }
 
         // ============ RENDER ============
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
