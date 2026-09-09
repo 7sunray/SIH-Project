@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovWatch - AI Anomaly Alerts</title>
+    
+    <!-- Premium Font Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Stable Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] 
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 
+                            400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 
+                            800: '#115e59', 900: '#134e4a', DEFAULT: '#0f766e' 
+                        },
+                        surface: '#f8fafc',
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'float': 'float 6s ease-in-out infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(25px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Stable Cloudflare CDNs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    
+    <style>
+        body { background-color: theme('colors.surface'); color: #0f172a; }
+        .sidebar-link { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-link:hover:not(.active) { background-color: #f1f5f9; transform: translateX(6px); }
+        .sidebar-link.active { background-color: theme('colors.primary.700'); color: white; box-shadow: 0 4px 14px rgba(15, 118, 110, 0.25); }
+        .sidebar-link.active svg { stroke: white; }
+        
+        .custom-shadow { box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.08); }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .thin-scrollbar::-webkit-scrollbar { width: 5px; }
+        .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .thin-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .hero-pattern {
+            background-color: #0f766e;
+            background-image: radial-gradient(circle at 100% 0%, #115e59 0%, transparent 50%),
+                              radial-gradient(circle at 0% 100%, #134e4a 0%, transparent 50%);
+            position: relative; overflow: hidden;
+        }
+        .hero-pattern::before {
+            content: ''; position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.04"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+            animation: float 25s linear infinite;
+        }
+        .dashboard-shell {
+            background-color: #f8fafc;
+            background-image: linear-gradient(rgba(15, 118, 110, 0.035) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(15, 118, 110, 0.035) 1px, transparent 1px),
+                              radial-gradient(circle at 92% 18%, rgba(45, 212, 191, 0.12), transparent 24rem),
+                              radial-gradient(circle at 8% 58%, rgba(14, 165, 233, 0.08), transparent 22rem);
+            background-size: 32px 32px, 32px 32px, auto, auto;
+        }
+        .control-card { position: relative; overflow: hidden; }
+        .control-card::before {
+            content: ''; position: absolute; inset: 0 0 auto; height: 4px;
+            background: linear-gradient(90deg, #0f766e, #2dd4bf); opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .control-card:hover::before { opacity: 1; }
+        .live-pulse { animation: livePulse 2s ease-in-out infinite; }
+        @keyframes livePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+            50% { box-shadow: 0 0 0 7px rgba(52, 211, 153, 0); }
+        }
+        .feed-frame::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(120deg, rgba(15, 118, 110, 0.22), transparent 45%, rgba(15, 23, 42, 0.24));
+            pointer-events: none;
+        }
+        
+        /* Staggered animations */
+        .stagger-1 { animation-delay: 0.05s; }
+        .stagger-2 { animation-delay: 0.10s; }
+        .stagger-3 { animation-delay: 0.15s; }
+        .stagger-4 { animation-delay: 0.20s; }
+        .stagger-5 { animation-delay: 0.25s; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // ============ CUSTOM ICONS ============
+        const Icons = {
+            Leaf: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0f766e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>,
+            Dashboard: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
+            Clipboard: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>,
+            CCTV: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+            Alert: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
+            Building: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>,
+            Calendar: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 14v6"/><path d="M9 17h6"/></svg>,
+            Video: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
+            Home: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            MapPin: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+            Shield: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+            Bell: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+            ArrowLeft: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+            ChevronRight: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+            Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            Clock: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            CameraIcon: () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+            Phone: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+            Brain: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 0 7 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 2.5 2.5 0 0 0 2.96-3.08 2.5 2.5 0 0 0-2.83-4.14A2.5 2.5 0 0 0 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 1 17 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 2.5 2.5 0 0 1-2.96-3.08 2.5 2.5 0 0 1 2.83-4.14A2.5 2.5 0 0 1 14.5 2Z"/></svg>,
+            Expand: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>,
+            ShieldCheck: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+            TriangleAlert: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+            Sliders: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        };
+
+        // ============ SIDEBAR COMPONENT ============
+        function Sidebar({ active, setActive }) {
+            const workspaceItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: <Icons.Dashboard /> },
+                { id: 'inspection', label: 'Field inspection', icon: <Icons.Clipboard /> },
+                { id: 'alerts', label: 'AI anomaly alerts', icon: <Icons.Alert />, badge: '7' },
+                { id: 'institutes', label: 'Institutes', icon: <Icons.Building /> },
+            ];
+            const managementItems = [
+                { id: 'assign', label: 'Assign inspections', icon: <Icons.Calendar /> },
+                { id: 'video', label: 'Video verification', icon: <Icons.Video /> },
+            ];
+
+            return (
+                <div className="w-64 bg-white border-r border-slate-200 py-6 px-4 flex flex-col h-screen fixed left-0 top-0 z-40 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer" onClick={() => window.location.href = 'dashboard.html'}>
+                        <Icons.Leaf />
+                        <div>
+                            <h1 className="text-2xl font-black text-slate-800 leading-tight tracking-tight">GovWatch</h1>
+                            <p className="text-[0.55rem] font-bold text-primary-700 tracking-[0.15em] mt-0.5">CARE. COMPLIANCE. TRUST.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 mb-8">
+                        <p className="text-[0.65rem] font-extrabold text-slate-400 tracking-wider mb-2 px-3">WORKSPACE</p>
+                        {workspaceItems.map(item => (
+                            <button key={item.id} onClick={() => {
+                                const routes = { dashboard: 'dashboard.html', inspection: 'field.html', cctv: 'cctv_feed.html', alerts: 'ai_anomaly.html' };
+                                if (routes[item.id]) window.location.href = routes[item.id];
+                            }} className={`sidebar-link w-full flex items-center justify-between px-3 py-3 rounded-xl text-[0.9rem] font-bold ${active === item.id ? 'active' : 'text-slate-500'}`}>
+                                <div className="flex items-center gap-3"><span className="opacity-80">{item.icon}</span> {item.label}</div>
+                                {item.badge && <span className={`text-[0.65rem] px-2 py-0.5 rounded-full font-bold shadow-sm ${active === item.id ? 'bg-white/20 text-white' : 'bg-emerald-100 text-primary-700'}`}>{item.badge}</span>}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-1 mt-auto pb-4">
+                        <p className="text-[0.65rem] font-extrabold text-slate-400 tracking-wider mb-2 px-3">MANAGEMENT</p>
+                        {managementItems.map(item => (
+                            <button key={item.id} onClick={() => {}} className={`sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[0.9rem] font-bold ${active === item.id ? 'active' : 'text-slate-500'}`}>
+                                <span className="opacity-80">{item.icon}</span> {item.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ PAGE: AI ANOMALY ALERTS ============
+        function AlertsPage({ onNavigate }) {
+            const [filter, setFilter] = useState('All Alerts (7)');
+            const filters = [
+                { id: 'All Alerts (7)', color: 'bg-primary-800 text-white border-primary-800' },
+                { id: 'Critical (2)', color: 'bg-white text-slate-600 border-slate-200', dot: 'bg-red-500' },
+                { id: 'High (3)', color: 'bg-white text-slate-600 border-slate-200', dot: 'bg-amber-500' },
+                { id: 'Medium (2)', color: 'bg-white text-slate-600 border-slate-200', dot: 'bg-yellow-400' }
+            ];
+
+            // Rich data extracted from the screenshot
+            const mockFeeds = [
+                { 
+                    id: 'CAM-01', type: 'Critical', title: 'CCTV feed offline for 6+ hours', loc: 'Nirmal Jyoti Disability Rehab Centre', 
+                    desc: 'Camera-03-DORM has reported no signal since 03:12 IST. No maintenance ticket was raised by the institute administrator.', 
+                    conf: 96, time: '05:37 PM', date: '6 Sept 2026', color: 'red',
+                    img: 'https://images.unsplash.com/photo-1541888046425-d81bb19240f5?auto=format&fit=crop&w=600&q=80' 
+                },
+                { 
+                    id: 'CAM-02', type: 'Critical', title: 'Beneficiary headcount mismatch', loc: 'Rukmini Shelter Home for Women', 
+                    desc: 'CCTV person-count (31) is significantly lower than the declared attendance register (42) for three consecutive days.', 
+                    conf: 91, time: '03:48 PM', date: '6 Sept 2026', color: 'red',
+                    img: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80' 
+                },
+                { 
+                    id: 'CAM-03', type: 'High', title: 'Unregistered visitor after hours', loc: 'Nambikkai De-addiction Centre', 
+                    desc: 'Entrance camera detected movement at 01:40 IST with no matching entry in the visitor log.', 
+                    conf: 87, time: '01:40 PM', date: '6 Sept 2026', color: 'amber',
+                    img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80' 
+                },
+                { 
+                    id: 'CAM-04', type: 'High', title: 'Staff attendance below sanctioned ratio', loc: 'Nirmal Jyoti Disability Rehab Centre', 
+                    desc: 'Only 6 of 10 sanctioned staff have badged in this week, falling below the mandated caregiver ratio.', 
+                    conf: 74, time: '11:22 AM', date: '5 Sept 2026', color: 'amber',
+                    img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80' 
+                },
+                { 
+                    id: 'CAM-05', type: 'Medium', title: 'Unusual movement detected', loc: 'Asha Deepthi Children\'s Home', 
+                    desc: 'AI detected unusual movement in the restricted zone near the back gate.', 
+                    conf: 68, time: '09:15 AM', date: '5 Sept 2026', color: 'yellow',
+                    img: 'https://images.unsplash.com/photo-1584824486509-112e4181f1b6?auto=format&fit=crop&w=600&q=80' 
+                }
+            ];
+
+            const filteredFeeds = filter === 'All Alerts (7)' ? mockFeeds : mockFeeds.filter(f => filter.includes(f.type));
+
+            const getColorClasses = (color) => {
+                if(color === 'red') return { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', fill: 'bg-red-500', icon: 'text-red-500' };
+                if(color === 'amber') return { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200', fill: 'bg-orange-500', icon: 'text-orange-500' };
+                return { bg: 'bg-yellow-50', text: 'text-yellow-600', border: 'border-yellow-200', fill: 'bg-yellow-400', icon: 'text-yellow-500' };
+            };
+
+            return (
+                <div className="dashboard-shell flex-1 w-full min-h-screen relative pb-20">
+                    {/* Hero Header matching screenshot vibe */}
+                    <div className="hero-pattern text-white pt-10 pb-36 px-8 lg:px-12 w-full rounded-bl-[2.5rem] rounded-br-[2.5rem] shadow-lg relative z-0">
+                        <div className="flex justify-between items-center text-sm font-semibold mb-14 max-w-7xl mx-auto relative z-10">
+                            <div className="flex items-center gap-4">
+                                <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition backdrop-blur-md border border-white/20 shadow-sm" onClick={() => window.location.href = 'dashboard.html'}>
+                                    <Icons.ArrowLeft />
+                                </button>
+                                <div className="text-emerald-100/70 tracking-wide uppercase text-xs cursor-pointer hover:text-white transition" onClick={() => window.location.href = 'dashboard.html'}>
+                                    Workspace &nbsp;&gt;&nbsp; <span className="text-white font-bold">AI Anomaly Alerts</span>
+                                </div>
+                            </div>
+                            <div className="w-11 h-11 rounded-full bg-white text-primary-800 font-black flex items-center justify-center text-sm tracking-tight shadow-xl border-[3px] border-emerald-100 cursor-pointer hover:scale-105 transition-transform">
+                                US
+                            </div>
+                        </div>
+
+                        <div className="max-w-7xl mx-auto relative z-10 animate-slide-up flex justify-between items-center">
+                            <div>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <span className="live-pulse inline-flex items-center gap-2 rounded-full bg-emerald-400/20 border border-emerald-200/30 px-3 py-1.5 text-[0.65rem] font-black uppercase tracking-[0.18em] text-emerald-100"><span className="w-2 h-2 rounded-full bg-emerald-300"></span> Live command view</span>
+                                    <span className="text-xs font-bold text-emerald-100/70">Updated 2 min ago</span>
+                                </div>
+                                <h2 className="text-4xl lg:text-5xl font-black mb-3 tracking-tight text-white drop-shadow-sm">AI Anomaly Alerts</h2>
+                                <p className="text-emerald-100/90 text-lg font-medium leading-relaxed">Automatically flagged irregularities across active CCTV feeds.</p>
+                            </div>
+                            {/* Graphic mimicking the CCTV illustration from screenshot */}
+                            <div className="hidden lg:flex w-36 h-36 bg-white/10 rounded-[2rem] backdrop-blur-md border border-white/20 items-center justify-center shadow-[0_0_60px_rgba(20,184,166,0.3)] transform rotate-[-5deg] hover:rotate-0 transition-transform duration-500 relative">
+                                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                                <div className="absolute top-8 right-6 w-3 h-3 bg-red-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(248,113,113,0.8)]"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="px-6 lg:px-12 -mt-20 space-y-8 relative z-10 max-w-7xl mx-auto">
+                        
+                        {/* Search and Filters */}
+                        <div className="glass-card rounded-[1.25rem] p-3 pl-5 custom-shadow border border-white/50 flex flex-col md:flex-row justify-between items-center gap-4 animate-slide-up">
+                            <div className="flex items-center gap-3 text-slate-400 w-full md:w-1/2">
+                                <Icons.Search />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search by location, event, or time..." 
+                                    className="w-full bg-transparent text-[0.95rem] text-slate-800 font-bold outline-none placeholder:font-semibold placeholder:text-slate-400"
+                                />
+                            </div>
+                            <div className="flex items-center gap-4 text-slate-400 border-l border-slate-200 pl-4 cursor-pointer hover:text-primary-700 transition-colors">
+                                <Icons.Sliders />
+                            </div>
+                        </div>
+
+                        {/* Filter Pills matching screenshot exactly */}
+                        <div className="flex gap-3 overflow-x-auto no-scrollbar w-full pt-3 animate-slide-up">
+                            {filters.map(f => {
+                                const isActive = filter === f.id;
+                                return (
+                                    <button 
+                                        key={f.id} onClick={() => setFilter(f.id)}
+                                        className={`px-5 py-2.5 rounded-full text-sm tracking-wide font-extrabold whitespace-nowrap transition-all border-2 shadow-sm flex items-center gap-2 ${
+                                            isActive 
+                                            ? 'bg-primary-800 text-white border-primary-800 scale-[1.02]' 
+                                            : 'bg-white text-slate-600 border-slate-200 hover:border-primary-300 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        {f.dot && !isActive && <span className={`w-2 h-2 rounded-full ${f.dot}`}></span>}
+                                        {f.id}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Summary Banner "AI Anomaly Detection" matching screenshot */}
+                        <div className="control-card bg-gradient-to-r from-emerald-50/80 to-white rounded-[1.5rem] p-6 lg:p-8 custom-shadow border border-emerald-100 flex flex-col md:flex-row items-center justify-between gap-6 animate-slide-up">
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                                <div className="w-14 h-14 rounded-[1.15rem] bg-primary-700 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+                                    <span className="font-black tracking-widest text-sm">AI</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-extrabold text-primary-900 tracking-tight">AI Anomaly Detection</h3>
+                                    <p className="text-sm text-primary-700/80 font-bold mt-0.5">Real-time analysis across all active cameras</p>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-8 md:gap-12 w-full md:w-auto pt-4 md:pt-0">
+                                <div className="text-center">
+                                    <p className="text-2xl font-black text-primary-900 mb-1 flex items-center gap-2 justify-center"><span className="text-primary-600"><Icons.Shield /></span> 7</p>
+                                    <p className="text-[0.65rem] text-primary-700/60 font-black uppercase tracking-widest">Total Alerts</p>
+                                </div>
+                                <div className="w-px h-10 bg-emerald-200/50 hidden md:block"></div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-red-500"><Icons.TriangleAlert /></span> 2</p>
+                                    <p className="text-[0.65rem] text-slate-400 font-black uppercase tracking-widest">Critical</p>
+                                </div>
+                                <div className="w-px h-10 bg-slate-200/50 hidden md:block"></div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-amber-500"><Icons.TriangleAlert /></span> 3</p>
+                                    <p className="text-[0.65rem] text-slate-400 font-black uppercase tracking-widest">High</p>
+                                </div>
+                                <div className="w-px h-10 bg-slate-200/50 hidden md:block"></div>
+                                <div className="text-center">
+                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-yellow-400"><Icons.TriangleAlert /></span> 2</p>
+                                    <p className="text-[0.65rem] text-slate-400 font-black uppercase tracking-widest">Medium</p>
+                                </div>
+                            </div>
+                            <div className="hidden lg:block text-slate-300"><Icons.ChevronRight /></div>
+                        </div>
+
+                        {/* List of Alert Cards (Wide Desktop Format) */}
+                        <div className="flex flex-col gap-6">
+                            {filteredFeeds.map((feed, idx) => {
+                                const colors = getColorClasses(feed.color);
+                                return (
+                                    <div key={feed.id} className={`control-card bg-white rounded-[1.5rem] overflow-hidden custom-shadow border border-slate-100 flex flex-col lg:flex-row group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 stagger-${(idx % 5) + 1} animate-slide-up`}>
+                                        
+                                        {/* Image Section (Left on Desktop) */}
+                                        <div className="feed-frame h-64 lg:h-auto lg:w-4/12 relative overflow-hidden bg-slate-900 flex-shrink-0">
+                                            <img src={feed.img} alt={feed.title} className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700" />
+                                            <div className="absolute top-4 left-4 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg text-[0.7rem] font-black tracking-widest uppercase flex items-center gap-2 shadow-lg backdrop-blur-md z-10">
+                                                <div className="live-pulse w-2 h-2 rounded-full bg-white"></div> LIVE
+                                            </div>
+                                            <div className="absolute top-4 right-4 bg-black/50 text-white p-2.5 rounded-xl backdrop-blur-md cursor-pointer hover:bg-black/70 transition z-10"><Icons.Expand /></div>
+                                            <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3.5 py-2 rounded-xl backdrop-blur-md flex items-center gap-2.5 text-xs font-bold z-10"><Icons.CameraIcon /> {feed.id}</div>
+                                            <div className="absolute bottom-4 right-4 bg-black/45 text-white px-2.5 py-1.5 rounded-lg backdrop-blur-md text-[0.6rem] font-black tracking-widest uppercase z-10">AI monitored</div>
+                                        </div>
+
+                                        {/* Content Section (Right on Desktop) */}
+                                        <div className="p-6 md:p-8 flex-1 flex flex-col justify-between relative bg-white">
+                                            <div>
+                                                <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
+                                                    <div className={`px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-2 border ${colors.bg} ${colors.text} ${colors.border}`}>
+                                                        <span className={colors.icon}><Icons.TriangleAlert /></span> {feed.type}
+                                                    </div>
+                                                    <div className="flex items-center gap-4 text-slate-400 text-xs font-extrabold">
+                                                        <span className="flex items-center gap-1.5"><Icons.Calendar /> {feed.date}</span>
+                                                        <span className="flex items-center gap-1.5"><Icons.Clock /> {feed.time}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <h4 className="text-2xl font-black text-slate-800 tracking-tight mb-2 group-hover:text-primary-800 transition-colors">{feed.title}</h4>
+                                                    <div className="text-slate-300 group-hover:text-primary-700 transition cursor-pointer hidden sm:block"><Icons.ChevronRight /></div>
+                                                </div>
+                                                
+                                                <p className="text-[0.85rem] text-slate-500 font-bold flex items-center gap-1.5 mb-4">
+                                                    <span className="text-primary-700"><Icons.MapPin /></span> {feed.loc}
+                                                </p>
+
+                                                <p className="text-sm text-slate-600 font-semibold leading-relaxed mb-8 max-w-3xl">
+                                                    {feed.desc}
+                                                </p>
+                                            </div>
+
+                                            {/* Bottom Action Bar */}
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-6 border-t border-slate-100">
+                                                <div className="flex-1 w-full max-w-sm">
+                                                    <div className="flex justify-between items-center text-[0.7rem] font-black text-slate-400 uppercase tracking-widest mb-2">
+                                                        <span className="flex items-center gap-1.5"><Icons.Brain /> AI Confidence</span>
+                                                        <span className={colors.text}>{feed.conf}%</span>
+                                                    </div>
+                                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                                                        <div className={`h-full rounded-full ${colors.fill} transition-all duration-1000`} style={{width: `${feed.conf}%`}}></div>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 w-full sm:w-auto">
+                                                    <button className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-primary-800 bg-white border-2 border-emerald-100 hover:bg-emerald-50 transition shadow-sm flex items-center justify-center gap-2">
+                                                        <Icons.Phone /> Verify by call
+                                                    </button>
+                                                    <button className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-white bg-primary-800 border-2 border-primary-800 hover:bg-primary-900 transition shadow-md flex items-center justify-center gap-2 whitespace-nowrap">
+                                                        <Icons.ShieldCheck /> Escalate to inspection
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ MAIN APP CONTROLLER ============
+        function App() {
+            const [activePage, setActivePage] = useState('alerts'); // Defaulting to Alerts to show the new page
+
+            return (
+                <div className="flex min-h-screen bg-surface font-sans">
+                    <Sidebar active={activePage} setActive={setActivePage} />
+                    <div className="ml-64 w-full overflow-hidden">
+                        {activePage === 'alerts' && <AlertsPage onNavigate={setActivePage} />}
+                        
+                        {/* Placeholders for other pages to prove routing works */}
+                        {activePage !== 'alerts' && (
+                            <div className="p-12 text-center text-slate-500 font-medium w-full flex flex-col items-center justify-center min-h-[80vh]">
+                                <p className="text-3xl font-black text-slate-800 capitalize mb-3 tracking-tight">{activePage.replace('-', ' ')} Page</p>
+                                <p className="text-sm mt-4 cursor-pointer bg-white px-6 py-3 rounded-xl border border-slate-200 shadow-sm text-primary-700 font-extrabold hover:bg-slate-50 hover:shadow-md transition-all" onClick={() => window.location.href = 'ai_anomaly.html'}>
+                                    Return to AI Anomaly Alerts
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ RENDER ============
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>

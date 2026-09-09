@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovWatch - Field Inspection Platform</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa', 
+                            100: '#ccfbf1', 
+                            200: '#99f6e4', 
+                            300: '#5eead4', 
+                            400: '#2dd4bf', 
+                            500: '#14b8a6', 
+                            600: '#0d9488', 
+                            700: '#0f766e', 
+                            800: '#115e59', 
+                            900: '#134e4a', 
+                            DEFAULT: '#0f766e' 
+                        },
+                        surface: '#f8fafc',
+                        animation: {
+                            'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        },
+                        keyframes: {
+                            slideUp: {
+                                '0%': { opacity: '0', transform: 'translateY(25px)' },
+                                '100%': { opacity: '1', transform: 'translateY(0)' },
+                            },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <style>
+        body { background-color: theme('colors.surface'); color: #0f172a; }
+        .sidebar-link { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-link:hover:not(.active) { background-color: #f1f5f9; transform: translateX(6px); }
+        .sidebar-link.active { background-color: theme('colors.primary.700'); color: white; box-shadow: 0 4px 14px rgba(15, 118, 110, 0.25); }
+        .sidebar-link.active svg { stroke: white; }
+        
+        .custom-shadow { box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.08); }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .thin-scrollbar::-webkit-scrollbar { width: 5px; }
+        .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .thin-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .thin-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .hero-pattern {
+            background-color: #0f766e;
+            background-image: radial-gradient(circle at 100% 0%, #115e59 0%, transparent 50%),
+                              radial-gradient(circle at 0% 100%, #134e4a 0%, transparent 50%);
+            position: relative; overflow: hidden;
+        }
+        .hero-pattern::before {
+            content: ''; position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.04"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+            animation: float 25s linear infinite;
+        }
+        .dashboard-shell {
+            background-color: #f8fafc;
+            background-image: linear-gradient(rgba(15, 118, 110, 0.035) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(15, 118, 110, 0.035) 1px, transparent 1px),
+                              radial-gradient(circle at 92% 18%, rgba(45, 212, 191, 0.12), transparent 24rem),
+                              radial-gradient(circle at 8% 58%, rgba(14, 165, 233, 0.08), transparent 22rem);
+            background-size: 32px 32px, 32px 32px, auto, auto;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        
+        /* Map Pulse Animation for Step 1 */
+        .map-bg {
+            background-color: #e0f2fe;
+            background-image: radial-gradient(#bae6fd 2px, transparent 2px);
+            background-size: 24px 24px;
+        }
+        .pulse-dot {
+            width: 16px; height: 16px;
+            background-color: #0ea5e9;
+            border-radius: 50%;
+            border: 3px solid white;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(14, 165, 233, 0.4);
+        }
+        .pulse-ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 16px; height: 16px;
+            background-color: rgba(14, 165, 233, 0.4);
+            border-radius: 50%;
+            animation: pulse-animation 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        .pulse-ring-2 {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px; height: 120px;
+            background-color: rgba(14, 165, 233, 0.1);
+            border-radius: 50%;
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+        @keyframes pulse-animation {
+            0% { width: 16px; height: 16px; opacity: 1; }
+            100% { width: 220px; height: 220px; opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+        // ============ CUSTOM ICONS ============
+        const Icons = {
+            Leaf: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0f766e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>,
+            Dashboard: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
+            Clipboard: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>,
+            CCTV: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+            Alert: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
+            Building: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>,
+            Calendar: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 14v6"/><path d="M9 17h6"/></svg>,
+            Video: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
+            Home: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            MapPin: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+            Crosshair: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>,
+            Shield: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+            Bell: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+            ArrowLeft: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+            ChevronRight: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>,
+            CheckCircleSolid: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="#0f766e"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="#ffffff"/></svg>,
+            MapIcon: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>,
+            ListIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+            UsersIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            CameraIcon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+            VideoIcon: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
+            DocumentIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>,
+            ChartIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+            Dots: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>,
+            Activity: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        };
+
+        // ============ NAVIGATION Sidebar ============
+        function Sidebar({ active, setActive }) {
+            const workspaceItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: <Icons.Dashboard /> },
+                { id: 'inspection', label: 'Field inspection', icon: <Icons.Clipboard /> },
+                { id: 'cctv', label: 'Live CCTV', icon: <Icons.CCTV /> },
+                { id: 'alerts', label: 'AI anomaly alerts', icon: <Icons.Alert />, badge: '7' },
+                { id: 'institutes', label: 'Institutes', icon: <Icons.Building /> },
+            ];
+
+            const managementItems = [
+                { id: 'assign', label: 'Assign inspections', icon: <Icons.Calendar /> },
+                { id: 'video', label: 'Video verification', icon: <Icons.Video /> },
+            ];
+
+            return (
+                <div className="w-64 bg-white border-r border-slate-200 py-6 px-4 flex flex-col h-screen fixed left-0 top-0 z-40 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer" onClick={() => window.location.href = 'dashboard.html'}>
+                        <Icons.Leaf />
+                        <div>
+                            <h1 className="text-2xl font-black text-slate-800 leading-tight tracking-tight">GovWatch</h1>
+                            <p className="text-[0.55rem] font-bold text-primary-700 tracking-[0.15em] mt-0.5">CARE. COMPLIANCE. TRUST.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 mb-8">
+                        <p className="text-[0.65rem] font-bold text-slate-400 tracking-wider mb-2 px-3">WORKSPACE</p>
+                        {workspaceItems.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => {
+                                    const routes = { dashboard: 'dashboard.html', inspection: 'field.html', cctv: 'cctv_feed.html', alerts: 'ai_anomaly.html' };
+                                    if (routes[item.id]) window.location.href = routes[item.id];
+                                }}
+                                className={`sidebar-link w-full flex items-center justify-between px-3 py-3 rounded-xl text-[0.9rem] font-bold ${
+                                    active === item.id ? 'active' : 'text-slate-500'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <span className="opacity-80">{item.icon}</span>
+                                    {item.label}
+                                </div>
+                                {item.badge && (
+                                    <span className={`text-[0.65rem] px-2 py-0.5 rounded-full font-bold ${active === item.id ? 'bg-white/20 text-white' : 'bg-emerald-100 text-primary-700'}`}>
+                                        {item.badge}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-1 mt-auto pb-4">
+                        <p className="text-[0.65rem] font-bold text-slate-400 tracking-wider mb-2 px-3">MANAGEMENT</p>
+                        {managementItems.map(item => (
+                            <button
+                                key={item.id}
+                                onClick={() => {}}
+                                className={`sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[0.9rem] font-bold ${
+                                    active === item.id ? 'active' : 'text-slate-500'
+                                }`}
+                            >
+                                <span className="opacity-80">{item.icon}</span>
+                                {item.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ PAGE: FIELD INSPECTION WORKFLOW ============
+        function FieldInspection({ onNavigateDashboard }) {
+            const institute = { 
+                id: 'MSJE/DL/00231', 
+                name: 'Rukmini Shelter Home for Women', 
+                lat: 28.6139, 
+                lng: 77.2090,
+                address: 'Sector 12, Dwarka, New Delhi, 110075',
+                phone: '+91 98100 12345',
+                lastInsp: '12 Aug 2026'
+            };
+            const [step, setStep] = useState(1);
+            
+            // Step 2 State (Expanded to 3 categories to fill horizontal desktop space)
+            const [checklistItems, setChecklistItems] = useState([
+                { id: 'c1', label: 'Staff member on duty matches roster', checked: false, group: 1 },
+                { id: 'c2', label: 'Beneficiaries visible & accounted for', checked: false, group: 1 },
+                { id: 'c3', label: 'Premises match registered address', checked: false, group: 1 },
+                { id: 'c4', label: 'No visible safety violations', checked: false, group: 1 },
+                { id: 'c5', label: 'CCTV cameras operational on-site', checked: false, group: 1 },
+                
+                { id: 's1', label: 'Staff present matches sanctioned roster', checked: false, group: 2 },
+                { id: 's2', label: 'Attendance register maintained and up to date', checked: false, group: 2 },
+                { id: 's3', label: 'Background verification documents available', checked: false, group: 2 },
+                
+                { id: 'i1', label: 'Fire extinguishers unexpired and accessible', checked: false, group: 3 },
+                { id: 'i2', label: 'Emergency exits clearly marked', checked: false, group: 3 },
+                { id: 'i3', label: 'Clean drinking water facility operational', checked: false, group: 3 },
+                { id: 'i4', label: 'Washrooms clean and functional', checked: false, group: 3 },
+            ]);
+            
+            const group1Count = checklistItems.filter(i => i.group === 1 && i.checked).length;
+            const group1Total = checklistItems.filter(i => i.group === 1).length;
+            const group2Count = checklistItems.filter(i => i.group === 2 && i.checked).length;
+            const group2Total = checklistItems.filter(i => i.group === 2).length;
+            const group3Count = checklistItems.filter(i => i.group === 3 && i.checked).length;
+            const group3Total = checklistItems.filter(i => i.group === 3).length;
+
+            const toggleChecklist = (id) => {
+                setChecklistItems(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
+            };
+
+            // Step 3 State
+            const evidenceMock = [
+                { id: 1, title: 'Main entrance', time: '6 Sep 2026, 05:42 PM', lat: 28.6139, lng: 77.2090, img: 'https://images.unsplash.com/photo-1541888046425-d81bb19240f5?auto=format&fit=crop&w=400&q=80' },
+                { id: 2, title: 'Beneficiary area', time: '6 Sep 2026, 05:47 PM', lat: 28.6141, lng: 77.2088, img: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=400&q=80' },
+                { id: 3, title: 'Records room', time: '6 Sep 2026, 05:52 PM', lat: 28.6137, lng: 77.2092, img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=400&q=80' },
+                { id: 4, title: 'Kitchen & Dining', time: '6 Sep 2026, 06:05 PM', lat: 28.6138, lng: 77.2095, img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=400&q=80' },
+            ];
+
+            // Step 4 State
+            const [assessment, setAssessment] = useState(null);
+
+            const steps = [
+                { num: 1, label: 'GPS verification' },
+                { num: 2, label: 'Checklist' },
+                { num: 3, label: 'Evidence' },
+                { num: 4, label: 'Submit report' },
+            ];
+
+            const renderStepper = () => (
+                <div className="bg-white rounded-[1.5rem] p-5 px-6 md:px-12 custom-shadow border border-slate-100 flex items-center justify-between w-full overflow-x-auto no-scrollbar mb-8 animate-slide-up">
+                    {steps.map((s, idx) => (
+                        <React.Fragment key={s.num}>
+                            <div className="flex items-center gap-3 md:gap-4 flex-shrink-0 cursor-pointer group" onClick={() => step > s.num && setStep(s.num)}>
+                                {step > s.num ? (
+                                    <div className="w-12 h-12 rounded-full bg-primary-700 flex items-center justify-center shadow-md group-hover:bg-primary-800 transition">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    </div>
+                                ) : (
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-base transition-all ${
+                                        step === s.num ? 'bg-primary-800 text-white shadow-xl scale-110 border-2 border-primary-100' : 'bg-slate-100 text-slate-400'
+                                    }`}>
+                                        {s.num}
+                                    </div>
+                                )}
+                                <span className={`text-[0.95rem] font-extrabold whitespace-nowrap tracking-wide ${step === s.num ? 'text-slate-800' : 'text-slate-400'}`}>
+                                    {s.label}
+                                </span>
+                            </div>
+                            {idx < steps.length - 1 && (
+                                <div className={`flex-1 h-[2px] mx-4 md:mx-6 min-w-[30px] rounded-full ${step > s.num ? 'bg-primary-200' : 'bg-slate-100'}`}></div>
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
+            );
+
+            // ---------------- STEP 1 RENDER (SPLIT PANE DESKTOP) ----------------
+            const renderStep1 = () => (
+                <div className="bg-white rounded-[1.5rem] p-6 md:p-8 custom-shadow border border-slate-100 animate-[fadeIn_0.3s_ease-out]">
+                    <div className="flex items-start justify-between mb-8 pb-6 border-b border-slate-100">
+                        <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 text-primary-700 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                <Icons.MapPin />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">GPS Verification</h3>
+                                <p className="text-sm text-slate-500 font-medium mt-1">
+                                    Confirm you are physically present at the registered institute address before proceeding.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Split Pane Container for Desktop */}
+                    <div className="flex flex-col lg:flex-row gap-8 mb-8">
+                        
+                        {/* Left Side: Detail Cards */}
+                        <div className="w-full lg:w-5/12 flex flex-col gap-5">
+                            <div className="rounded-2xl border border-slate-200 p-6 bg-white hover:border-primary-300 transition-colors shadow-sm">
+                                <div className="flex items-center gap-2 text-primary-700 mb-3 font-bold text-sm">
+                                    <Icons.MapPin /> <span>Registered Institute Location</span>
+                                </div>
+                                <p className="text-3xl font-black text-slate-800 tracking-tight mb-2">
+                                    {institute.lat.toFixed(4)}° N, {institute.lng.toFixed(4)}° E
+                                </p>
+                                <p className="text-sm text-slate-500 font-medium leading-relaxed border-t border-slate-100 pt-3 mt-1">
+                                    {institute.name}, {institute.address}
+                                </p>
+                            </div>
+                            
+                            <div className="rounded-2xl border border-slate-200 p-6 bg-slate-50 hover:border-primary-300 transition-colors shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-48 h-48 bg-sky-200 rounded-full blur-[80px] -mr-20 -mt-20 opacity-40"></div>
+                                <div className="flex items-center gap-2 text-primary-700 mb-3 font-bold text-sm relative z-10">
+                                    <Icons.Crosshair /> <span>Your Current Location</span>
+                                </div>
+                                <p className="text-3xl font-black text-slate-800 tracking-tight mb-4 relative z-10">
+                                    {(institute.lat + 0.0002).toFixed(4)}° N, {(institute.lng - 0.0002).toFixed(4)}° E
+                                </p>
+                                <div className="flex flex-wrap items-center gap-2 relative z-10">
+                                    <span className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">Accuracy: ±4m</span>
+                                    <span className="bg-emerald-50 border border-emerald-200 text-primary-800 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                        Device GPS Active
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Side: Interactive Map Visual */}
+                        <div className="w-full lg:w-7/12 rounded-3xl border border-slate-200 overflow-hidden relative min-h-[380px] map-bg flex items-center justify-center shadow-inner">
+                            <div className="absolute top-4 right-4 bg-white text-primary-700 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 flex items-center gap-2 shadow-md cursor-pointer hover:bg-slate-50 transition z-20">
+                                <Icons.MapIcon /> Expand map <Icons.ChevronRight />
+                            </div>
+                            
+                            {/* Pin for the registered location */}
+                            <div className="absolute top-[35%] left-[30%] bg-white px-4 py-2.5 rounded-xl shadow-lg border border-slate-200 text-sm font-bold text-slate-800 flex items-center gap-3 z-10 cursor-pointer hover:scale-105 transition-transform origin-bottom-left">
+                                <div className="w-3.5 h-3.5 rounded-full bg-slate-400 shadow-inner"></div>
+                                <div>
+                                    <div className="leading-tight">{institute.name}</div>
+                                    <div className="text-[0.65rem] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Target Destination</div>
+                                </div>
+                                {/* Pointer arrow */}
+                                <div className="absolute -bottom-2 left-4 w-4 h-4 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
+                            </div>
+                            
+                            {/* Pulse for Current User Location */}
+                            <div className="relative top-12 left-16 z-10">
+                                <div className="pulse-ring-2"></div>
+                                <div className="pulse-ring"></div>
+                                <div className="pulse-dot"></div>
+                                <div className="absolute -bottom-10 -left-12 bg-primary-800 text-white text-[0.7rem] font-bold px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap tracking-wide border border-primary-600">
+                                    You are here
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Verification Success Box */}
+                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50/30 rounded-2xl p-6 border border-emerald-100 flex flex-col md:flex-row items-start md:items-center justify-between mb-8 shadow-sm">
+                        <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 rounded-full bg-primary-700 flex items-center justify-center flex-shrink-0 shadow-[0_4px_14px_rgba(15,118,110,0.4)]">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                            <div>
+                                <h4 className="font-extrabold text-primary-900 text-xl tracking-tight">Location verified successfully</h4>
+                                <p className="text-primary-700/80 text-sm font-semibold mt-1 flex items-center gap-2">
+                                    <span>Within 12m of the registered institute address.</span>
+                                    <span className="hidden md:inline w-1.5 h-1.5 rounded-full bg-primary-700/40"></span>
+                                    <span className="hidden md:inline">Recorded at 4:25:09 PM</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 border-t border-slate-100">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-slate-50 text-slate-500 border border-slate-200 flex items-center justify-center shadow-sm">
+                                <Icons.ListIcon />
+                            </div>
+                            <div>
+                                <h4 className="font-bold text-slate-800 text-base">Proceed to Checklist</h4>
+                                <p className="text-slate-500 text-sm font-medium mt-0.5">Verify on-site conditions before moving to the next step.</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 w-full md:w-auto">
+                            <button onClick={() => setStep(2)} className="w-full md:w-auto bg-primary-800 hover:bg-primary-900 text-white font-bold py-3.5 px-8 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm tracking-wide">
+                                Go to Checklist &rarr;
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // ---------------- STEP 2 RENDER (MULTI-COLUMN DESKTOP) ----------------
+            const renderStep2 = () => (
+                <div className="animate-[fadeIn_0.3s_ease-out]">
+                    <div className="bg-white rounded-[1.5rem] p-6 md:p-8 custom-shadow border border-slate-100 mb-6">
+                        <div className="flex items-center gap-4 mb-2">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-primary-700 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                <Icons.Clipboard />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">Inspection Checklist</h3>
+                                <p className="text-sm text-slate-500 font-medium mt-1">Verify all objective points during the physical on-site visit.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* CSS Grid for Checklist Categories to utilize wide screens */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        
+                        {/* Category 1 */}
+                        <div className="bg-white rounded-[1.5rem] p-6 md:p-8 custom-shadow border border-slate-100 flex flex-col h-full">
+                            <div className="flex items-center justify-between mb-6 pb-5 border-b border-slate-100">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                        <Icons.ListIcon />
+                                    </div>
+                                    <h3 className="font-extrabold text-slate-800 text-lg">General Operations</h3>
+                                </div>
+                                <div className="bg-slate-50 text-slate-600 px-3.5 py-1.5 rounded-full text-xs font-bold border border-slate-200">
+                                    {group1Count} / {group1Total}
+                                </div>
+                            </div>
+                            <div className="space-y-2 flex-1">
+                                {checklistItems.filter(i => i.group === 1).map((item) => (
+                                    <div key={item.id} onClick={() => toggleChecklist(item.id)} className="flex items-start justify-between p-3.5 hover:bg-slate-50 rounded-2xl cursor-pointer transition-all border border-transparent hover:border-slate-200 group">
+                                        <div className="flex items-start gap-4">
+                                            <div className={`w-7 h-7 mt-0.5 rounded-full border-[2.5px] flex items-center justify-center transition-all flex-shrink-0 ${item.checked ? 'bg-primary-700 border-primary-700 shadow-md shadow-primary-700/20 scale-105' : 'border-slate-300 group-hover:border-primary-400 bg-white'}`}>
+                                                {item.checked && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                                            </div>
+                                            <span className={`text-[0.95rem] font-semibold pt-0.5 leading-snug ${item.checked ? 'text-slate-800' : 'text-slate-600 group-hover:text-slate-800'}`}>{item.label}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-6">
+                            {/* Category 2 */}
+                            <div className="bg-white rounded-[1.5rem] p-6 md:p-8 custom-shadow border border-slate-100 flex-1">
+                                <div className="flex items-center justify-between mb-6 pb-5 border-b border-slate-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center flex-shrink-0">
+                                            <Icons.UsersIcon />
+                                        </div>
+                                        <h3 className="font-extrabold text-slate-800 text-lg">Staff & Records</h3>
+                                    </div>
+                                    <div className="bg-slate-50 text-slate-600 px-3.5 py-1.5 rounded-full text-xs font-bold border border-slate-200">
+                                        {group2Count} / {group2Total}
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    {checklistItems.filter(i => i.group === 2).map((item) => (
+                                        <div key={item.id} onClick={() => toggleChecklist(item.id)} className="flex items-start justify-between p-3.5 hover:bg-slate-50 rounded-2xl cursor-pointer transition-all border border-transparent hover:border-slate-200 group">
+                                            <div className="flex items-start gap-4">
+                                                <div className={`w-7 h-7 mt-0.5 rounded-full border-[2.5px] flex items-center justify-center transition-all flex-shrink-0 ${item.checked ? 'bg-primary-700 border-primary-700 shadow-md shadow-primary-700/20 scale-105' : 'border-slate-300 group-hover:border-primary-400 bg-white'}`}>
+                                                    {item.checked && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                                                </div>
+                                                <span className={`text-[0.95rem] font-semibold pt-0.5 leading-snug ${item.checked ? 'text-slate-800' : 'text-slate-600 group-hover:text-slate-800'}`}>{item.label}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Category 3 */}
+                            <div className="bg-white rounded-[1.5rem] p-6 md:p-8 custom-shadow border border-slate-100 flex-1">
+                                <div className="flex items-center justify-between mb-6 pb-5 border-b border-slate-100">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0">
+                                            <Icons.Activity />
+                                        </div>
+                                        <h3 className="font-extrabold text-slate-800 text-lg">Infrastructure & Safety</h3>
+                                    </div>
+                                    <div className="bg-slate-50 text-slate-600 px-3.5 py-1.5 rounded-full text-xs font-bold border border-slate-200">
+                                        {group3Count} / {group3Total}
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    {checklistItems.filter(i => i.group === 3).map((item) => (
+                                        <div key={item.id} onClick={() => toggleChecklist(item.id)} className="flex items-start justify-between p-3.5 hover:bg-slate-50 rounded-2xl cursor-pointer transition-all border border-transparent hover:border-slate-200 group">
+                                            <div className="flex items-start gap-4">
+                                                <div className={`w-7 h-7 mt-0.5 rounded-full border-[2.5px] flex items-center justify-center transition-all flex-shrink-0 ${item.checked ? 'bg-primary-700 border-primary-700 shadow-md shadow-primary-700/20 scale-105' : 'border-slate-300 group-hover:border-primary-400 bg-white'}`}>
+                                                    {item.checked && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                                                </div>
+                                                <span className={`text-[0.95rem] font-semibold pt-0.5 leading-snug ${item.checked ? 'text-slate-800' : 'text-slate-600 group-hover:text-slate-800'}`}>{item.label}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-6 mt-6">
+                        <button onClick={() => setStep(1)} className="py-3 px-6 rounded-xl font-bold text-slate-600 hover:bg-white border border-transparent hover:border-slate-200 hover:shadow-sm transition-all flex items-center gap-2">
+                            <Icons.ArrowLeft /> Go Back
+                        </button>
+                        <button onClick={() => setStep(3)} className="bg-primary-800 hover:bg-primary-900 text-white font-bold py-3.5 px-8 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2 tracking-wide">
+                            Proceed to Evidence &rarr;
+                        </button>
+                    </div>
+                </div>
+            );
+
+            // ---------------- STEP 3 RENDER (GRID GALLERY) ----------------
+            const renderStep3 = () => (
+                <div className="bg-white rounded-[1.5rem] p-6 md:p-10 custom-shadow border border-slate-100 animate-[fadeIn_0.3s_ease-out]">
+                    <div className="flex items-start justify-between mb-8 pb-6 border-b border-slate-100">
+                        <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 text-primary-700 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                <Icons.CameraIcon />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">Photo & Video Evidence</h3>
+                                <p className="text-sm text-slate-500 font-medium mt-1">
+                                    Capture geotagged evidence of premises, records, and facilities. Minimum 3 required.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-5 mb-10">
+                        <button className="flex-1 py-5 border-[2px] border-slate-200 border-dashed rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-primary-400 transition-colors text-slate-700 font-extrabold shadow-sm group">
+                            <span className="text-primary-700 group-hover:scale-110 transition-transform"><Icons.CameraIcon /></span> 
+                            Upload Photo Evidence
+                        </button>
+                        <button className="flex-1 py-5 border-[2px] border-slate-200 border-dashed rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-primary-400 transition-colors text-slate-700 font-extrabold shadow-sm group">
+                            <span className="text-primary-700 group-hover:scale-110 transition-transform"><Icons.VideoIcon /></span> 
+                            Upload Video Clip
+                        </button>
+                    </div>
+
+                    <div className="flex items-center justify-between mb-6 pb-3">
+                        <h4 className="font-extrabold text-slate-800 text-lg">Evidence Gallery</h4>
+                        <div className="bg-emerald-50 text-primary-800 px-4 py-2 rounded-xl text-xs font-bold border border-emerald-100 flex items-center gap-2 shadow-sm">
+                            <Icons.CheckCircleSolid /> {evidenceMock.length} files attached
+                        </div>
+                    </div>
+
+                    {/* Expand grid to 4 columns on large screens to fill space */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                        {evidenceMock.map(item => (
+                            <div key={item.id} className="border border-slate-200 rounded-[1.25rem] overflow-hidden flex flex-col hover:shadow-lg hover:border-primary-300 transition-all bg-white group cursor-pointer">
+                                <div className="h-44 w-full relative overflow-hidden">
+                                    <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    <div className="absolute top-3 left-3 flex gap-2">
+                                        <span className="bg-white/90 backdrop-blur-sm text-primary-800 px-2 py-1 rounded-md text-[0.65rem] font-bold shadow-sm flex items-center gap-1">
+                                            <Icons.MapPin /> Geotagged
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="p-4 flex-1 flex flex-col justify-between">
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <h5 className="font-extrabold text-slate-800 text-base">{item.title}</h5>
+                                            <div className="text-slate-400 hover:text-slate-700 transition-colors"><Icons.Dots /></div>
+                                        </div>
+                                        <div className="text-[0.75rem] text-slate-500 font-semibold flex items-center gap-2 mb-1.5">
+                                            <Icons.Calendar /> {item.time}
+                                        </div>
+                                        <div className="text-[0.75rem] text-slate-500 font-semibold flex items-center gap-2">
+                                            <Icons.MapPin /> {item.lat.toFixed(4)}° N, {item.lng.toFixed(4)}° E
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+                        <button onClick={() => setStep(2)} className="py-3 px-6 rounded-xl font-bold text-slate-600 hover:bg-slate-50 border border-transparent hover:border-slate-200 hover:shadow-sm transition-all flex items-center gap-2">
+                            <Icons.ArrowLeft /> Go Back
+                        </button>
+                        <button onClick={() => setStep(4)} className="bg-primary-800 hover:bg-primary-900 text-white font-bold py-3.5 px-8 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2 tracking-wide">
+                            Proceed to Report &rarr;
+                        </button>
+                    </div>
+                </div>
+            );
+
+            // ---------------- STEP 4 RENDER ----------------
+            const renderStep4 = () => (
+                <div className="animate-[fadeIn_0.3s_ease-out]">
+                    <div className="bg-white rounded-[1.5rem] p-6 md:p-8 custom-shadow border border-slate-100 mb-6">
+                        <div className="flex items-center gap-4 mb-2">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-primary-700 flex items-center justify-center flex-shrink-0 shadow-inner">
+                                <Icons.DocumentIcon />
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">Report Summary</h3>
+                                <p className="text-sm text-slate-500 font-medium mt-1">Review the collected field data and finalize your assessment.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        {/* Verification Summary */}
+                        <div className="bg-white rounded-[1.5rem] p-8 custom-shadow border border-slate-100 flex flex-col">
+                            <div className="flex items-center gap-3 mb-8 pb-5 border-b border-slate-100">
+                                <div className="w-10 h-10 rounded-full bg-slate-50 text-slate-600 flex items-center justify-center">
+                                    <Icons.ListIcon />
+                                </div>
+                                <h4 className="font-extrabold text-slate-800 text-lg">Verification Breakdown</h4>
+                            </div>
+                            
+                            <div className="space-y-5 flex-1">
+                                <div className="flex justify-between items-center text-[0.95rem]">
+                                    <span className="text-slate-500 font-bold flex items-center gap-2"><Icons.MapPin /> GPS Location</span>
+                                    <span className="font-extrabold text-primary-700 bg-emerald-50 px-3 py-1 rounded-lg">Verified</span>
+                                </div>
+                                <div className="w-full h-px bg-slate-100"></div>
+                                <div className="flex justify-between items-center text-[0.95rem]">
+                                    <span className="text-slate-500 font-bold flex items-center gap-2"><Icons.Clipboard /> Checklist Items</span>
+                                    <span className="font-extrabold text-slate-800">{group1Count + group2Count + group3Count} / {group1Total + group2Total + group3Total}</span>
+                                </div>
+                                <div className="w-full h-px bg-slate-100"></div>
+                                <div className="flex justify-between items-center text-[0.95rem]">
+                                    <span className="text-slate-500 font-bold flex items-center gap-2"><Icons.CameraIcon /> Evidence Files</span>
+                                    <span className="font-extrabold text-slate-800">{evidenceMock.length} Attached</span>
+                                </div>
+                                <div className="w-full h-px bg-slate-100"></div>
+                                <div className="flex justify-between items-center text-[0.95rem]">
+                                    <span className="text-slate-500 font-bold flex items-center gap-2"><Icons.Calendar /> Inspection Time</span>
+                                    <span className="font-extrabold text-slate-800">6 Sept 2026, 6:01 PM</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Overall Assessment */}
+                        <div className="bg-white rounded-[1.5rem] p-8 custom-shadow border border-slate-100 flex flex-col">
+                            <div className="flex items-center gap-3 mb-8 pb-5 border-b border-slate-100">
+                                <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+                                    <Icons.ChartIcon />
+                                </div>
+                                <h4 className="font-extrabold text-slate-800 text-lg">Final Assessment</h4>
+                            </div>
+
+                            <p className="text-sm font-bold text-slate-800 mb-3">Overall Recommendation Status</p>
+                            <div className="flex gap-3 mb-8">
+                                {['Satisfactory', 'Needs improvement', 'Critical issues'].map(a => (
+                                    <button 
+                                        key={a} 
+                                        onClick={() => setAssessment(a)}
+                                        className={`flex-1 py-3 px-2 rounded-xl text-xs font-bold border-2 transition-all text-center shadow-sm ${
+                                            assessment === a 
+                                                ? 'bg-emerald-50 border-primary-600 text-primary-800 scale-[1.02]' 
+                                                : 'bg-white border-slate-200 text-slate-500 hover:border-primary-300 hover:text-slate-700'
+                                        }`}
+                                    >
+                                        {a}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex-1 flex flex-col">
+                                <label className="text-sm font-bold text-slate-800 mb-3">Official Remarks</label>
+                                <textarea 
+                                    className="flex-1 w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 font-medium placeholder:text-slate-400 placeholder:font-normal outline-none focus:border-primary-500 focus:bg-white focus:shadow-[0_0_0_4px_rgba(15,118,110,0.1)] transition-all resize-none min-h-[120px]"
+                                    placeholder="Summarise key observations, discrepancies and required actions..."
+                                ></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <button onClick={() => setStep(3)} className="py-3 px-6 rounded-xl font-bold text-slate-600 hover:bg-white border border-transparent hover:border-slate-200 hover:shadow-sm transition-all flex items-center gap-2">
+                            <Icons.ArrowLeft /> Back to Evidence
+                        </button>
+                        <button onClick={onNavigateDashboard} className="bg-primary-800 hover:bg-primary-900 text-white font-extrabold py-4 px-10 rounded-xl transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 flex items-center gap-3 tracking-wide text-base">
+                            <Icons.CheckCircleSolid /> Submit Official Report
+                        </button>
+                    </div>
+                </div>
+            );
+
+            // ---------------- WRAPPER ----------------
+            return (
+                <div className="dashboard-shell flex-1 w-full min-h-screen relative pb-20">
+                    {/* Header: Desktop Optimized */}
+                    <div className="hero-pattern text-white pt-10 pb-36 px-8 lg:px-12 w-full rounded-bl-[2.5rem] rounded-br-[2.5rem] shadow-lg relative z-0">
+                        <div className="flex justify-between items-center text-sm font-semibold mb-14 max-w-7xl mx-auto relative z-10">
+                            <div className="text-emerald-100/70 cursor-pointer hover:text-white transition" onClick={onNavigateDashboard}>
+                                Workspace &nbsp;&gt;&nbsp; <span className="text-white font-semibold">Field inspection</span>
+                            </div>
+                            <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/10 backdrop-blur-sm">
+                                    <Icons.Shield />
+                                    <span className="font-bold tracking-wide">Secure Session</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="max-w-7xl mx-auto flex items-center gap-6 relative z-10 animate-slide-up">
+                            <button onClick={onNavigateDashboard} className="w-14 h-14 rounded-full border-2 border-white/20 flex items-center justify-center hover:bg-white/20 hover:border-white/40 transition-all cursor-pointer shadow-sm">
+                                <Icons.ArrowLeft />
+                            </button>
+                            <div>
+                                <h2 className="text-4xl lg:text-5xl font-black tracking-tight mb-2 drop-shadow-sm">Field Inspection</h2>
+                                <p className="text-emerald-100 text-lg font-medium">On-site verification workflow</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main Content constraints raised to max-w-7xl for wide desktop view */}
+                    <div className="px-6 lg:px-12 -mt-14 space-y-6 relative z-10 max-w-7xl mx-auto">
+                        
+                        {renderStepper()}
+
+                        {/* Top Institute Summary Card (Visible across steps 1-3) */}
+                        {step !== 4 && (
+                            <div className="glass-card rounded-[1.5rem] p-6 lg:p-8 custom-shadow border border-white/50 flex flex-col lg:flex-row items-center justify-between gap-6 w-full mb-6 animate-slide-up">
+                                <div className="flex items-center gap-5 w-full lg:w-auto">
+                                    <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-primary-800 flex items-center justify-center flex-shrink-0 border border-emerald-100 shadow-inner">
+                                        <Icons.Home />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-extrabold text-slate-800 mb-1 tracking-tight">{institute.name}</h3>
+                                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 font-semibold mt-1.5">
+                                            <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">ID: {institute.id}</span>
+                                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                            <span>Ref: INS-2026-08841</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Right aligned metadata to fill wide screens */}
+                                <div className="hidden lg:flex items-center gap-10 w-full lg:w-auto border-t lg:border-t-0 border-slate-100 pt-4 lg:pt-0">
+                                    <div>
+                                        <p className="text-[0.7rem] text-slate-400 font-bold uppercase tracking-wider mb-1">Contact</p>
+                                        <p className="text-sm font-extrabold text-slate-700">{institute.phone}</p>
+                                    </div>
+                                    <div className="w-px h-12 bg-slate-100"></div>
+                                    <div>
+                                        <p className="text-[0.7rem] text-slate-400 font-bold uppercase tracking-wider mb-1">Last Checked</p>
+                                        <p className="text-sm font-extrabold text-slate-700">{institute.lastInsp}</p>
+                                    </div>
+                                    <div className="w-px h-12 bg-slate-100"></div>
+                                    <div className="flex flex-col items-end">
+                                        <span className="bg-emerald-50 text-primary-800 px-4 py-2.5 rounded-xl text-xs font-black tracking-widest uppercase border border-emerald-200 shadow-sm">
+                                            Field Assignment
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Dynamic Step Content */}
+                        {step === 1 && renderStep1()}
+                        {step === 2 && renderStep2()}
+                        {step === 3 && renderStep3()}
+                        {step === 4 && renderStep4()}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ MAIN APP CONTROLLER ============
+        function App() {
+            const [activePage, setActivePage] = useState('inspection');
+
+            return (
+                <div className="flex min-h-screen bg-surface font-sans">
+                    <Sidebar active={activePage} setActive={setActivePage} />
+                    <div className="ml-64 w-full">
+                        {activePage === 'dashboard' && (
+                            <div className="p-12 text-center text-slate-500 font-medium w-full flex flex-col items-center justify-center min-h-screen">
+                                <p className="text-xl font-bold text-slate-800 mb-2">Welcome to your Dashboard</p>
+                                <p className="text-sm mb-6">Switch to Field Inspection to view the fully developed workflow.</p>
+                                <button className="bg-primary-700 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-primary-800 transition" onClick={() => window.location.href = 'field.html'}>
+                                    Go to Field Inspection Workflow
+                                </button>
+                            </div>
+                        )}
+                        {activePage === 'inspection' && <FieldInspection onNavigateDashboard={() => window.location.href = 'dashboard.html'} />}
+                        
+                        {/* Other Blank Pages */}
+                        {['cctv', 'alerts', 'institutes', 'assign', 'video'].includes(activePage) && (
+                            <div className="p-12 text-center text-slate-500 font-medium w-full flex flex-col items-center justify-center min-h-[60vh]">
+                                <p className="text-2xl font-bold text-slate-800 capitalize mb-2">{activePage.replace('-', ' ')} Page</p>
+                                <p className="text-sm mt-4 cursor-pointer bg-white px-6 py-3 rounded-xl border border-slate-200 shadow-sm text-primary-700 font-bold hover:bg-slate-50 transition" onClick={() => window.location.href = 'dashboard.html'}>
+                                    Return to Dashboard
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ RENDER ============
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
