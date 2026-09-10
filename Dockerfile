@@ -4,6 +4,10 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++ openssl
 COPY package*.json ./
 COPY .npmrc ./
+# Prisma schema + config must exist BEFORE npm ci: the postinstall hook
+# runs `prisma generate`, which fails without them (Render build error).
+COPY prisma ./prisma
+COPY prisma7.config.ts ./
 RUN npm ci
 COPY . .
 RUN npm run build
