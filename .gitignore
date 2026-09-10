@@ -7,3 +7,8 @@ dist
 /generated
 # Redis snapshots accidentally written to the repo root
 *.rdb
+# Postman local working files (the .json collection is the real artifact)
+postman/.postman/
+postman/dosje-backend/
+postman/New Folder/
+postman/postman/
