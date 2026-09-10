@@ -292,13 +292,60 @@
         // ============ PAGE: INSTITUTES DIRECTORY ============
         function InstitutesPage({ onNavigate }) {
             const [search, setSearch] = useState('');
+            const [institutes, setInstitutes] = useState(mockInstitutesData);
             const [selectedId, setSelectedId] = useState(mockInstitutesData[0].id);
+            const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+            const [isFlagOpen, setIsFlagOpen] = useState(false);
+            const [flagReason, setFlagReason] = useState('');
+            const [flagSubmitted, setFlagSubmitted] = useState(false);
+            const [newInstitute, setNewInstitute] = useState({
+                name: '',
+                district: '',
+                type: 'Shelter Home',
+                lat: '',
+                lng: '',
+                address: '',
+                phone: '',
+            });
 
             const filtered = useMemo(() => {
-                return mockInstitutesData.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.id.toLowerCase().includes(search.toLowerCase()));
-            }, [search]);
+                const normalizedSearch = search.toLowerCase();
+                return institutes.filter(i => i.name.toLowerCase().includes(normalizedSearch) || i.id.toLowerCase().includes(normalizedSearch));
+            }, [institutes, search]);
 
-            const activeInst = mockInstitutesData.find(i => i.id === selectedId) || mockInstitutesData[0];
+            const activeInst = institutes.find(i => i.id === selectedId) || institutes[0];
+
+            const handleFlagInstitute = (event) => {
+                event.preventDefault();
+                setFlagSubmitted(true);
+            };
+
+            const handleRegisterInstitute = (event) => {
+                event.preventDefault();
+
+                const institute = {
+                    id: `MSJE/DL/${String(231 + institutes.length).padStart(5, '0')}`,
+                    name: newInstitute.name.trim(),
+                    district: newInstitute.district.trim(),
+                    type: newInstitute.type,
+                    lat: Number(newInstitute.lat),
+                    lng: Number(newInstitute.lng),
+                    address: newInstitute.address.trim(),
+                    phone: newInstitute.phone.trim(),
+                    lastInsp: 'Not inspected',
+                    riskScore: 0,
+                    beneficiaries: 0,
+                    staff: 0,
+                    attendanceToday: 'N/A',
+                    iconColor: 'bg-cyan-600',
+                };
+
+                setInstitutes((currentInstitutes) => [...currentInstitutes, institute]);
+                setSelectedId(institute.id);
+                setSearch('');
+                setNewInstitute({ name: '', district: '', type: 'Shelter Home', lat: '', lng: '', address: '', phone: '' });
+                setIsRegisterOpen(false);
+            };
 
             const getRiskColor = (score) => {
                 if(score >= 70) return 'text-red-600 bg-red-50 border-red-200';
@@ -335,7 +382,7 @@
                                 <h2 className="text-4xl lg:text-5xl font-black mb-3 tracking-tight text-white drop-shadow-sm">Institutes Directory</h2>
                                 <p className="text-emerald-100/90 text-lg font-medium leading-relaxed">Manage and monitor registered NGOs and shelters.</p>
                             </div>
-                            <button className="hidden md:flex bg-white text-primary-800 px-6 py-3.5 rounded-xl font-extrabold shadow-lg hover:shadow-xl hover:scale-105 transition-all items-center gap-2">
+                            <button type="button" onClick={() => setIsRegisterOpen(true)} className="hidden md:flex bg-white text-primary-800 px-6 py-3.5 rounded-xl font-extrabold shadow-lg hover:shadow-xl hover:scale-105 transition-all items-center gap-2">
                                 + Register New Institute
                             </button>
                         </div>
@@ -425,7 +472,7 @@
                                             zoom={11}
                                             height="220px"
                                             markers={[
-                                                ...mockInstitutesData.map((institute) => ({
+                                                ...institutes.map((institute) => ({
                                                     lat: institute.lat,
                                                     lng: institute.lng,
                                                     color: institute.id === activeInst.id ? '#0f766e' : '#64748b',
@@ -489,13 +536,13 @@
 
                                     {/* Action Bar */}
                                     <div className="flex flex-col sm:flex-row items-center gap-4 mt-auto pt-6 border-t border-slate-100">
-                                        <button className="w-full sm:flex-1 bg-primary-800 hover:bg-primary-900 text-white font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-md hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                        <button type="button" onClick={() => window.location.href = 'video_verification.html'} className="w-full sm:flex-1 bg-primary-800 hover:bg-primary-900 text-white font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-md hover:-translate-y-0.5 flex items-center justify-center gap-2">
                                             <Icons.VideoCall /> Start Video Call
                                         </button>
-                                        <button onClick={() => onNavigate('inspection')} className="w-full sm:flex-1 bg-white border-2 border-slate-200 text-slate-700 hover:border-primary-300 hover:text-primary-800 font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-sm hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                        <button type="button" onClick={() => window.location.href = 'inspections.html'} className="w-full sm:flex-1 bg-white border-2 border-slate-200 text-slate-700 hover:border-primary-300 hover:text-primary-800 font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-sm hover:-translate-y-0.5 flex items-center justify-center gap-2">
                                             <Icons.Clipboard /> Request Inspection
                                         </button>
-                                        <button className="w-full sm:w-auto bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-extrabold py-3.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
+                                        <button type="button" onClick={() => { setFlagSubmitted(false); setFlagReason(''); setIsFlagOpen(true); }} className="w-full sm:w-auto bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-extrabold py-3.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
                                             <Icons.Flag /> Flag Institute
                                         </button>
                                     </div>
@@ -503,6 +550,93 @@
                             </div>
                         </div>
                     </div>
+
+                    {isFlagOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-8" onMouseDown={(event) => event.target === event.currentTarget && setIsFlagOpen(false)}>
+                            <form onSubmit={handleFlagInstitute} className="w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl border border-slate-200">
+                                {!flagSubmitted ? (
+                                    <>
+                                        <div className="flex items-start justify-between gap-6 mb-6">
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-[0.18em] text-red-600">Review required</p>
+                                                <h3 className="mt-2 text-2xl font-black text-slate-800">Flag Institute</h3>
+                                                <p className="mt-2 text-sm font-semibold text-slate-500">Report an issue with {activeInst.name}.</p>
+                                            </div>
+                                            <button type="button" onClick={() => setIsFlagOpen(false)} className="text-2xl leading-none text-slate-400 hover:text-slate-700" aria-label="Close flag form">&times;</button>
+                                        </div>
+                                        <label className="text-sm font-bold text-slate-700">Reason for flagging
+                                            <select required value={flagReason} onChange={(event) => setFlagReason(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100">
+                                                <option value="">Select a reason</option>
+                                                <option>Safety concern</option>
+                                                <option>Incorrect institute details</option>
+                                                <option>Suspected non-compliance</option>
+                                                <option>Other review required</option>
+                                            </select>
+                                        </label>
+                                        <div className="mt-7 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-slate-100 pt-5">
+                                            <button type="button" onClick={() => setIsFlagOpen(false)} className="rounded-xl border-2 border-slate-200 px-5 py-3 font-extrabold text-slate-600 hover:bg-slate-50">Cancel</button>
+                                            <button type="submit" className="rounded-xl bg-red-600 px-5 py-3 font-extrabold text-white shadow-md hover:bg-red-700">Submit Flag</button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="text-center py-5">
+                                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-600"><Icons.Flag /></div>
+                                        <h3 className="mt-4 text-2xl font-black text-slate-800">Flag submitted</h3>
+                                        <p className="mt-2 text-sm font-semibold text-slate-500">{activeInst.name} was flagged for {flagReason.toLowerCase()}.</p>
+                                        <button type="button" onClick={() => setIsFlagOpen(false)} className="mt-6 rounded-xl bg-slate-800 px-5 py-3 font-extrabold text-white hover:bg-slate-900">Close</button>
+                                    </div>
+                                )}
+                            </form>
+                        </div>
+                    )}
+
+                    {isRegisterOpen && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-8" onMouseDown={(event) => event.target === event.currentTarget && setIsRegisterOpen(false)}>
+                            <form onSubmit={handleRegisterInstitute} className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white p-7 shadow-2xl border border-slate-200">
+                                <div className="flex items-start justify-between gap-6 mb-6">
+                                    <div>
+                                        <p className="text-xs font-black uppercase tracking-[0.18em] text-primary-700">Institute onboarding</p>
+                                        <h3 className="mt-2 text-2xl font-black text-slate-800">Register New Institute</h3>
+                                    </div>
+                                    <button type="button" onClick={() => setIsRegisterOpen(false)} className="text-2xl leading-none text-slate-400 hover:text-slate-700" aria-label="Close registration form">&times;</button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label className="md:col-span-2 text-sm font-bold text-slate-700">Institute name
+                                        <input required value={newInstitute.name} onChange={(event) => setNewInstitute({ ...newInstitute, name: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" placeholder="e.g. Udaan Community Home" />
+                                    </label>
+                                    <label className="text-sm font-bold text-slate-700">District
+                                        <input required value={newInstitute.district} onChange={(event) => setNewInstitute({ ...newInstitute, district: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" placeholder="e.g. Delhi East" />
+                                    </label>
+                                    <label className="text-sm font-bold text-slate-700">Institute type
+                                        <select value={newInstitute.type} onChange={(event) => setNewInstitute({ ...newInstitute, type: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100">
+                                            <option>Shelter Home</option>
+                                            <option>Old Age Home</option>
+                                            <option>Rehab Facility</option>
+                                            <option>Child Welfare</option>
+                                            <option>De-addiction Centre</option>
+                                            <option>Observation Home</option>
+                                        </select>
+                                    </label>
+                                    <label className="text-sm font-bold text-slate-700">Latitude
+                                        <input required type="number" step="any" min="-90" max="90" value={newInstitute.lat} onChange={(event) => setNewInstitute({ ...newInstitute, lat: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" placeholder="28.6139" />
+                                    </label>
+                                    <label className="text-sm font-bold text-slate-700">Longitude
+                                        <input required type="number" step="any" min="-180" max="180" value={newInstitute.lng} onChange={(event) => setNewInstitute({ ...newInstitute, lng: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" placeholder="77.2090" />
+                                    </label>
+                                    <label className="md:col-span-2 text-sm font-bold text-slate-700">Full address
+                                        <input required value={newInstitute.address} onChange={(event) => setNewInstitute({ ...newInstitute, address: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" placeholder="Street, city, postal code" />
+                                    </label>
+                                    <label className="md:col-span-2 text-sm font-bold text-slate-700">Contact number
+                                        <input required type="tel" value={newInstitute.phone} onChange={(event) => setNewInstitute({ ...newInstitute, phone: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 font-semibold outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100" placeholder="+91 98765 43210" />
+                                    </label>
+                                </div>
+                                <div className="mt-7 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-slate-100 pt-5">
+                                    <button type="button" onClick={() => setIsRegisterOpen(false)} className="rounded-xl border-2 border-slate-200 px-5 py-3 font-extrabold text-slate-600 hover:bg-slate-50">Cancel</button>
+                                    <button type="submit" className="rounded-xl bg-primary-800 px-5 py-3 font-extrabold text-white shadow-md hover:bg-primary-900">Add Institute</button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
                 </div>
             );
         }

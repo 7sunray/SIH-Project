@@ -236,6 +236,7 @@
         function AssignInspectionsPage({ onNavigate }) {
             const [search, setSearch] = useState('');
             const [assignments, setAssignments] = useState({});
+            const [pendingAssignments, setPendingAssignments] = useState({});
 
             const mockPending = [
                 { id: 'MSJE/DL/00231', name: 'Rukmini Shelter Home for Women', district: 'Dwarka, Delhi', risk: 78, lastInsp: '12 Jun 2026', priority: 'High', defaultAssign: 'Utkarsh Singh' },
@@ -266,6 +267,10 @@
 
             const handleAssignChange = (id, value) => {
                 setAssignments(prev => ({ ...prev, [id]: value }));
+            };
+
+            const handleAssign = (id) => {
+                setPendingAssignments(prev => ({ ...prev, [id]: true }));
             };
 
             return (
@@ -382,8 +387,8 @@
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5 text-right">
-                                                    <button className="bg-primary-800 hover:bg-primary-900 text-white text-xs font-extrabold px-6 py-3 rounded-xl shadow-md hover:shadow-lg active:scale-95 transition-all w-full md:w-auto">
-                                                        Assign
+                                                    <button type="button" onClick={() => handleAssign(inst.id)} className={`${pendingAssignments[inst.id] ? 'bg-emerald-100 text-emerald-800 border border-emerald-200 hover:bg-emerald-200' : 'bg-primary-800 hover:bg-primary-900 text-white'} text-xs font-extrabold px-6 py-3 rounded-xl shadow-md hover:shadow-lg active:scale-95 transition-all w-full md:w-auto`}>
+                                                        {pendingAssignments[inst.id] ? 'Pending' : 'Assign'}
                                                     </button>
                                                 </td>
                                             </tr>
@@ -392,7 +397,7 @@
                                 </table>
                             </div>
                             
-                            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors group" onClick={() => onNavigate('institutes')}>
+                            <div className="p-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between cursor-pointer hover:bg-slate-100 transition-colors group" onClick={() => window.location.href = 'institutes_directory.html'}>
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-emerald-100 text-primary-800 flex items-center justify-center"><Icons.ClipboardList /></div>
                                     <span className="font-extrabold text-slate-800 group-hover:text-primary-800 transition-colors">View all institutes</span>
