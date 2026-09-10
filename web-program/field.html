@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -50,6 +51,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
     <style>
@@ -135,6 +137,56 @@
 
     <script type="text/babel">
         const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+        function InteractiveMap({ center = [28.6139, 77.209], zoom = 12, markers = [], height = '100%', className = '' }) {
+            const mapContainerRef = useRef(null);
+            const mapInstanceRef = useRef(null);
+
+            useEffect(() => {
+                if (!mapContainerRef.current || !window.L) return;
+
+                if (!mapInstanceRef.current) {
+                    mapInstanceRef.current = window.L.map(mapContainerRef.current, {
+                        zoomControl: true,
+                        scrollWheelZoom: true,
+                    });
+
+                    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors',
+                        maxZoom: 19,
+                    }).addTo(mapInstanceRef.current);
+                }
+
+                const map = mapInstanceRef.current;
+
+                if (markers.length > 0) {
+                    const bounds = window.L.latLngBounds(markers.map((marker) => [marker.lat, marker.lng]));
+                    map.fitBounds(bounds.pad(0.35));
+                } else {
+                    map.setView(center, zoom);
+                }
+
+                const markerLayer = window.L.layerGroup();
+                markers.forEach((marker) => {
+                    const icon = window.L.divIcon({
+                        className: 'custom-map-pin',
+                        html: `<span style="display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${marker.color || '#0f766e'};border:3px solid #fff;box-shadow:0 0 0 4px rgba(15,118,110,0.16);"></span>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9],
+                    });
+                    window.L.marker([marker.lat, marker.lng], { icon }).addTo(markerLayer).bindPopup(marker.popup || marker.label || 'Location');
+                });
+                markerLayer.addTo(map);
+
+                return () => {
+                    markerLayer.clearLayers();
+                    map.remove();
+                    mapInstanceRef.current = null;
+                };
+            }, [center, zoom, markers]);
+
+            return <div ref={mapContainerRef} className={`leaflet-map ${className}`} style={{ height, width: '100%' }} />;
+        }
 
         // ============ CUSTOM ICONS ============
         const Icons = {
@@ -379,31 +431,19 @@
                         </div>
 
                         {/* Right Side: Interactive Map Visual */}
-                        <div className="w-full lg:w-7/12 rounded-3xl border border-slate-200 overflow-hidden relative min-h-[380px] map-bg flex items-center justify-center shadow-inner">
+                        <div className="w-full lg:w-7/12 rounded-3xl border border-slate-200 overflow-hidden relative min-h-[380px] shadow-inner">
                             <div className="absolute top-4 right-4 bg-white text-primary-700 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 flex items-center gap-2 shadow-md cursor-pointer hover:bg-slate-50 transition z-20">
                                 <Icons.MapIcon /> Expand map <Icons.ChevronRight />
                             </div>
-                            
-                            {/* Pin for the registered location */}
-                            <div className="absolute top-[35%] left-[30%] bg-white px-4 py-2.5 rounded-xl shadow-lg border border-slate-200 text-sm font-bold text-slate-800 flex items-center gap-3 z-10 cursor-pointer hover:scale-105 transition-transform origin-bottom-left">
-                                <div className="w-3.5 h-3.5 rounded-full bg-slate-400 shadow-inner"></div>
-                                <div>
-                                    <div className="leading-tight">{institute.name}</div>
-                                    <div className="text-[0.65rem] text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Target Destination</div>
-                                </div>
-                                {/* Pointer arrow */}
-                                <div className="absolute -bottom-2 left-4 w-4 h-4 bg-white border-b border-r border-slate-200 transform rotate-45"></div>
-                            </div>
-                            
-                            {/* Pulse for Current User Location */}
-                            <div className="relative top-12 left-16 z-10">
-                                <div className="pulse-ring-2"></div>
-                                <div className="pulse-ring"></div>
-                                <div className="pulse-dot"></div>
-                                <div className="absolute -bottom-10 -left-12 bg-primary-800 text-white text-[0.7rem] font-bold px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap tracking-wide border border-primary-600">
-                                    You are here
-                                </div>
-                            </div>
+                            <InteractiveMap
+                                center={[28.6139, 77.209]}
+                                zoom={12}
+                                height="380px"
+                                markers={[
+                                    { lat: institute.lat, lng: institute.lng, color: '#334155', popup: `<strong>${institute.name}</strong><br/>${institute.address}`, label: institute.name },
+                                    { lat: institute.lat + 0.002, lng: institute.lng - 0.0016, color: '#0ea5e9', popup: '<strong>Your location</strong><br/>GPS verified', label: 'You are here' },
+                                ]}
+                            />
                         </div>
                     </div>
 

@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovWatch - Institutes Directory</title>
+    
+    <!-- Premium Font Import -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Stable Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] 
+                    },
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4', 
+                            400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e', 
+                            800: '#115e59', 900: '#134e4a', DEFAULT: '#0f766e' 
+                        },
+                        surface: '#f8fafc',
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'page-enter': 'pageEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(25px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        pageEnter: {
+                            '0%': { opacity: '0', transform: 'translateY(15px) scale(0.995)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Ultra-Stable React & Babel CDNs -->
+    <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js"></script>
+    
+    <style>
+        body { background-color: #f8fafc; color: #0f172a; }
+        .sidebar-link { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-link:hover:not(.active) { background-color: #f1f5f9; transform: translateX(6px); }
+        .sidebar-link.active { background-color: #0f766e; color: white; box-shadow: 0 4px 14px rgba(15, 118, 110, 0.25); }
+        .sidebar-link.active svg { stroke: white; }
+
+        .animate-slide-up { animation: none !important; }
+        .animate-page-enter { animation: none !important; }
+        
+        .custom-shadow { box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.08); }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); }
+        
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .thin-scrollbar::-webkit-scrollbar { width: 5px; }
+        .thin-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .thin-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .thin-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        /* Premium Hero Pattern */
+        .hero-pattern {
+            background-color: #0f766e;
+            background-image: radial-gradient(circle at 100% 0%, #115e59 0%, transparent 50%),
+                              radial-gradient(circle at 0% 100%, #134e4a 0%, transparent 50%);
+            position: relative; overflow: hidden;
+        }
+        .hero-pattern::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.04"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+            animation: float 25s linear infinite;
+        }
+
+        /* Map Pulse Animation */
+        .map-bg {
+            background-color: #f0f9ff;
+            background-image: radial-gradient(#bae6fd 2px, transparent 2px);
+            background-size: 28px 28px;
+        }
+        .leaflet-container {
+            width: 100%;
+            height: 100%;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+        .leaflet-control-attribution {
+            font-size: 10px;
+        }
+        .custom-map-pin {
+            background: transparent;
+            border: none;
+        }
+        .pulse-ring-2 {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 140px; height: 140px;
+            background-color: rgba(15, 118, 110, 0.1);
+            border-radius: 50%;
+            border: 1px solid rgba(15, 118, 110, 0.3);
+            animation: pulse-animation 2.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-animation {
+            0% { width: 40px; height: 40px; opacity: 1; }
+            100% { width: 200px; height: 200px; opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        function InteractiveMap({ center = [28.6139, 77.209], zoom = 11, markers = [], height = '100%', className = '' }) {
+            const mapContainerRef = useRef(null);
+            const mapInstanceRef = useRef(null);
+
+            useEffect(() => {
+                if (!mapContainerRef.current || !window.L) return;
+
+                if (!mapInstanceRef.current) {
+                    mapInstanceRef.current = window.L.map(mapContainerRef.current, {
+                        zoomControl: true,
+                        scrollWheelZoom: true,
+                    });
+
+                    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors',
+                        maxZoom: 19,
+                    }).addTo(mapInstanceRef.current);
+                }
+
+                const map = mapInstanceRef.current;
+                const markerLayer = window.L.layerGroup();
+
+                if (markers.length > 0) {
+                    const bounds = window.L.latLngBounds(markers.map((marker) => [marker.lat, marker.lng]));
+                    map.fitBounds(bounds.pad(0.35));
+                } else {
+                    map.setView(center, zoom);
+                }
+
+                markers.forEach((marker) => {
+                    const icon = window.L.divIcon({
+                        className: 'custom-map-pin',
+                        html: `<span style="display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:${marker.color || '#0f766e'};border:3px solid #fff;box-shadow:0 0 0 4px rgba(15,118,110,0.16);"></span>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9],
+                    });
+                    window.L.marker([marker.lat, marker.lng], { icon }).addTo(markerLayer).bindPopup(marker.popup || marker.label || 'Location');
+                });
+
+                markerLayer.addTo(map);
+
+                return () => {
+                    markerLayer.clearLayers();
+                    map.remove();
+                    mapInstanceRef.current = null;
+                };
+            }, [center, zoom, markers]);
+
+            return <div ref={mapContainerRef} className={`leaflet-map ${className}`} style={{ height, width: '100%' }} />;
+        }
+
+        // ============ ERROR BOUNDARY ============
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, errorInfo: null };
+            }
+            static getDerivedStateFromError(error) { return { hasError: true, errorInfo: error }; }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="p-10 m-10 bg-red-50 border-2 border-red-500 rounded-xl text-red-800 font-mono">
+                            <h1 className="text-2xl font-bold mb-4">React Rendering Error</h1>
+                            <pre className="bg-white p-4 rounded shadow overflow-auto">{this.state.errorInfo.toString()}</pre>
+                        </div>
+                    );
+                }
+                return this.props.children; 
+            }
+        }
+
+        // ============ CUSTOM ICONS ============
+        const Icons = {
+            Leaf: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0f766e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>,
+            Dashboard: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
+            Clipboard: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>,
+            CCTV: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>,
+            Alert: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
+            Building: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>,
+            Calendar: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M12 14v6"/><path d="M9 17h6"/></svg>,
+            Video: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
+            VideoCall: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>,
+            Home: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+            MapPin: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>,
+            Shield: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+            Bell: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
+            ArrowLeft: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>,
+            Search: () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            Phone: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+            Flag: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+            MapIcon: () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>,
+            UsersIcon: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            Activity: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,
+            CheckCircleSolid: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+        };
+
+        // ============ SHARED MOCK DATA ============
+        const mockInstitutesData = [
+            { id: 'MSJE/DL/00231', name: 'Rukmini Shelter Home for Women', district: 'Delhi Central', type: 'Shelter Home', lat: 28.6139, lng: 77.2090, address: 'Sector 12, Dwarka, New Delhi, 110075', phone: '+91 98100 12345', lastInsp: '12 Aug 2026', riskScore: 88, beneficiaries: 145, staff: 24, attendanceToday: '92%', iconColor: 'bg-emerald-600' },
+            { id: 'MSJE/DL/00232', name: 'Bharat Sevashram', district: 'Delhi South', type: 'Old Age Home', lat: 28.5355, lng: 77.2410, address: 'Kalkaji Mandir Road, New Delhi, 110019', phone: '+91 98111 22334', lastInsp: '05 Sep 2026', riskScore: 42, beneficiaries: 85, staff: 12, attendanceToday: '100%', iconColor: 'bg-blue-600' },
+            { id: 'MSJE/DL/00233', name: 'Nirmal Jyoti Rehab Centre', district: 'Delhi North', type: 'Rehab Facility', lat: 28.7041, lng: 77.1025, address: 'Rohini Sector 7, New Delhi, 110085', phone: '+91 98222 33445', lastInsp: '28 Aug 2026', riskScore: 94, beneficiaries: 210, staff: 35, attendanceToday: '78%', iconColor: 'bg-red-600' },
+            { id: 'MSJE/DL/00234', name: 'Asha Deepthi Children\'s Home', district: 'Delhi East', type: 'Child Welfare', lat: 28.6462, lng: 77.2906, address: 'Preet Vihar, New Delhi, 110092', phone: '+91 98333 44556', lastInsp: '01 Sep 2026', riskScore: 65, beneficiaries: 112, staff: 18, attendanceToday: '88%', iconColor: 'bg-amber-500' },
+            { id: 'MSJE/DL/00235', name: 'Nambikkai De-addiction Centre', district: 'Delhi West', type: 'De-addiction Centre', lat: 28.6211, lng: 77.0378, address: 'Janakpuri, New Delhi, 110058', phone: '+91 98444 55667', lastInsp: '20 Jul 2026', riskScore: 72, beneficiaries: 64, staff: 14, attendanceToday: '85%', iconColor: 'bg-purple-600' },
+            { id: 'MSJE/DL/00236', name: 'Umeed Observation Home', district: 'Delhi South', type: 'Observation Home', lat: 28.5286, lng: 77.2482, address: 'Saket, New Delhi, 110017', phone: '+91 98555 66778', lastInsp: '15 Aug 2026', riskScore: 35, beneficiaries: 42, staff: 8, attendanceToday: '98%', iconColor: 'bg-teal-600' },
+        ];
+
+        // ============ SIDEBAR COMPONENT ============
+        function Sidebar({ active, setActive }) {
+            const workspaceItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: <Icons.Dashboard /> },
+                { id: 'inspection', label: 'Field inspection', icon: <Icons.Clipboard /> },
+                { id: 'cctv', label: 'Live CCTV', icon: <Icons.CCTV /> },
+                { id: 'alerts', label: 'AI anomaly alerts', icon: <Icons.Alert /> },
+                { id: 'institutes', label: 'Institutes', icon: <Icons.Building /> },
+            ];
+
+            const managementItems = [
+                { id: 'assign', label: 'Assign inspections', icon: <Icons.Calendar /> },
+                { id: 'video', label: 'Video verification', icon: <Icons.Video /> },
+            ];
+
+            return (
+                <div className="w-64 bg-white border-r border-slate-200 py-6 px-4 flex flex-col h-screen fixed left-0 top-0 z-40 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-3 mb-10 px-2 cursor-pointer" onClick={() => window.location.href = 'dashboard.html'}>
+                        <Icons.Leaf />
+                        <div>
+                            <h1 className="text-2xl font-black text-slate-800 leading-tight tracking-tight">GovWatch</h1>
+                            <p className="text-[0.55rem] font-bold text-primary-700 tracking-[0.15em] mt-0.5">CARE. COMPLIANCE. TRUST.</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 mb-8">
+                        <p className="text-[0.65rem] font-extrabold text-slate-400 tracking-wider mb-2 px-3">WORKSPACE</p>
+                        {workspaceItems.map(item => (
+                            <button key={item.id} onClick={() => {
+                                const routes = { dashboard: 'dashboard.html', inspection: 'field.html', cctv: 'cctv_feed.html', alerts: 'ai_anomaly.html', institutes: 'institutes_directory.html' };
+                                if (routes[item.id]) window.location.href = routes[item.id];
+                            }} className={`sidebar-link w-full flex items-center justify-between px-3 py-3 rounded-xl text-[0.9rem] font-bold ${active === item.id ? 'active' : 'text-slate-500'}`}>
+                                <div className="flex items-center gap-3"><span className="opacity-80">{item.icon}</span> {item.label}</div>
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col gap-1 mt-auto pb-4">
+                        <p className="text-[0.65rem] font-extrabold text-slate-400 tracking-wider mb-2 px-3">MANAGEMENT</p>
+                        {managementItems.map(item => (
+                            <button key={item.id} onClick={() => {
+                                const routes = { assign: 'inspections.html', video: 'video_verification.html' };
+                                if (routes[item.id]) window.location.href = routes[item.id];
+                            }} className={`sidebar-link w-full flex items-center gap-3 px-3 py-3 rounded-xl text-[0.9rem] font-bold ${active === item.id ? 'active' : 'text-slate-500'}`}>
+                                <span className="opacity-80">{item.icon}</span> {item.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ PAGE: INSTITUTES DIRECTORY ============
+        function InstitutesPage({ onNavigate }) {
+            const [search, setSearch] = useState('');
+            const [selectedId, setSelectedId] = useState(mockInstitutesData[0].id);
+
+            const filtered = useMemo(() => {
+                return mockInstitutesData.filter(i => i.name.toLowerCase().includes(search.toLowerCase()) || i.id.toLowerCase().includes(search.toLowerCase()));
+            }, [search]);
+
+            const activeInst = mockInstitutesData.find(i => i.id === selectedId) || mockInstitutesData[0];
+
+            const getRiskColor = (score) => {
+                if(score >= 70) return 'text-red-600 bg-red-50 border-red-200';
+                if(score >= 40) return 'text-amber-600 bg-amber-50 border-amber-200';
+                return 'text-emerald-600 bg-emerald-50 border-emerald-200';
+            };
+
+            const getRiskLabel = (score) => {
+                if(score >= 70) return 'High Risk';
+                if(score >= 40) return 'Medium Risk';
+                return 'Low Risk';
+            };
+
+            return (
+                <div className="flex-1 w-full min-h-screen relative pb-10 bg-surface">
+                    {/* Hero Header */}
+                    <div className="hero-pattern text-white pt-10 pb-36 px-8 lg:px-12 w-full rounded-bl-[2.5rem] rounded-br-[2.5rem] shadow-lg relative z-0">
+                        <div className="flex justify-between items-center text-sm font-semibold mb-14 max-w-7xl mx-auto relative z-10">
+                            <div className="flex items-center gap-4">
+                                <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition backdrop-blur-md border border-white/20 shadow-sm" onClick={() => onNavigate('dashboard')}>
+                                    <Icons.ArrowLeft />
+                                </button>
+                                <div className="text-emerald-100/70 tracking-wide uppercase text-xs cursor-pointer hover:text-white transition" onClick={() => onNavigate('dashboard')}>
+                                    Workspace &nbsp;&gt;&nbsp; <span className="text-white font-bold">Institutes Directory</span>
+                                </div>
+                            </div>
+                            <div className="w-11 h-11 rounded-full bg-white text-primary-800 font-black flex items-center justify-center text-sm tracking-tight shadow-xl border-[3px] border-emerald-100 cursor-pointer hover:scale-105 transition-transform">
+                                US
+                            </div>
+                        </div>
+
+                        <div className="max-w-7xl mx-auto relative z-10 animate-slide-up flex justify-between items-center">
+                            <div>
+                                <h2 className="text-4xl lg:text-5xl font-black mb-3 tracking-tight text-white drop-shadow-sm">Institutes Directory</h2>
+                                <p className="text-emerald-100/90 text-lg font-medium leading-relaxed">Manage and monitor registered NGOs and shelters.</p>
+                            </div>
+                            <button className="hidden md:flex bg-white text-primary-800 px-6 py-3.5 rounded-xl font-extrabold shadow-lg hover:shadow-xl hover:scale-105 transition-all items-center gap-2">
+                                + Register New Institute
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="px-6 lg:px-12 -mt-20 relative z-10 max-w-7xl mx-auto animate-slide-up">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            
+                            {/* Left Pane: Searchable List */}
+                            <div className="lg:col-span-1 flex flex-col gap-6">
+                                <div className="glass-card rounded-[1.25rem] p-3 pl-4 custom-shadow border border-white/50 flex items-center gap-3 text-slate-500">
+                                    <Icons.Search />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search by name or ID..." 
+                                        value={search}
+                                        onChange={(e) => setSearch(e.target.value)}
+                                        className="w-full bg-transparent text-[0.95rem] text-slate-800 font-bold outline-none placeholder:font-semibold placeholder:text-slate-400"
+                                    />
+                                </div>
+
+                                <div className="bg-white rounded-[1.5rem] p-4 custom-shadow border border-slate-100 h-[700px] flex flex-col">
+                                    <div className="flex justify-between items-center px-2 pb-3 mb-2 border-b border-slate-100">
+                                        <h3 className="font-extrabold text-slate-800">All Registered ({filtered.length})</h3>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto thin-scrollbar pr-2 pl-2 -ml-2 py-1 space-y-2">
+                                        {filtered.map(inst => {
+                                            const isSelected = selectedId === inst.id;
+                                            return (
+                                                <div 
+                                                    key={inst.id} 
+                                                    onClick={() => setSelectedId(inst.id)}
+                                                    className={`p-4 rounded-2xl cursor-pointer transition-all duration-200 border-2 active:scale-95 ${
+                                                        isSelected 
+                                                        ? 'bg-primary-50 border-primary-500 shadow-md scale-[1.02]' 
+                                                        : 'bg-white border-transparent hover:border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                                >
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <h4 className={`font-extrabold text-[0.95rem] leading-snug pr-4 ${isSelected ? 'text-primary-900' : 'text-slate-800'}`}>
+                                                            {inst.name}
+                                                        </h4>
+                                                    </div>
+                                                    <div className="flex items-center justify-between mt-3">
+                                                        <p className={`text-xs font-bold flex items-center gap-1.5 ${isSelected ? 'text-primary-700' : 'text-slate-500'}`}>
+                                                            <Icons.MapPin /> {inst.district}
+                                                        </p>
+                                                        <span className={`px-2.5 py-1 rounded-md text-[0.65rem] font-bold border ${getRiskColor(inst.riskScore)}`}>
+                                                            {getRiskLabel(inst.riskScore)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {filtered.length === 0 && (
+                                            <div className="p-6 text-center text-slate-500 font-medium">No institutes found.</div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Pane: Details (Triggers re-render animation when selectedId changes via key property) */}
+                            <div className="lg:col-span-2 flex flex-col gap-6">
+                                <div key={activeInst.id} className="bg-white rounded-[1.5rem] p-8 custom-shadow border border-slate-100 flex flex-col h-full animate-page-enter">
+                                    
+                                    {/* Header Info */}
+                                    <div className="flex items-start justify-between mb-8 pb-6 border-b border-slate-100">
+                                        <div className="flex items-center gap-5">
+                                            <div className={`w-16 h-16 rounded-2xl ${activeInst.iconColor} text-white flex items-center justify-center flex-shrink-0 shadow-lg`}>
+                                                <Icons.Building />
+                                            </div>
+                                            <div>
+                                                <h2 className="text-3xl font-black text-slate-800 tracking-tight mb-1">{activeInst.name}</h2>
+                                                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500 font-bold mt-1.5">
+                                                    <span className="bg-slate-100 px-2.5 py-1 rounded-md text-slate-700 shadow-sm border border-slate-200">ID: {activeInst.id}</span>
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                                    <span>{activeInst.type}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Map Area */}
+                                    <div className="w-full h-[220px] rounded-2xl overflow-hidden border border-slate-200 shadow-inner mb-8">
+                                        <InteractiveMap
+                                            center={[28.6139, 77.209]}
+                                            zoom={11}
+                                            height="220px"
+                                            markers={[
+                                                { lat: activeInst.lat, lng: activeInst.lng, color: '#0f766e', popup: `<strong>${activeInst.name}</strong><br/>${activeInst.address}`, label: activeInst.name },
+                                                { lat: activeInst.lat + 0.0025, lng: activeInst.lng - 0.0018, color: '#0ea5e9', popup: '<strong>Your GPS</strong><br/>Live verified', label: 'You are here' },
+                                            ]}
+                                        />
+                                    </div>
+
+                                    {/* Key Stats Grid */}
+                                    <h3 className="text-lg font-extrabold text-slate-800 mb-4">Key Metrics</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between">
+                                            <div className="flex items-center gap-2 text-amber-500 mb-2"><Icons.Activity /></div>
+                                            <div className="text-2xl font-black text-slate-800">{activeInst.riskScore}</div>
+                                            <div className="text-[0.7rem] font-bold text-slate-500 uppercase tracking-widest mt-1">Risk Score</div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between">
+                                            <div className="flex items-center gap-2 text-blue-500 mb-2"><Icons.UsersIcon /></div>
+                                            <div className="text-2xl font-black text-slate-800">{activeInst.beneficiaries}</div>
+                                            <div className="text-[0.7rem] font-bold text-slate-500 uppercase tracking-widest mt-1">Beneficiaries</div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between">
+                                            <div className="flex items-center gap-2 text-purple-500 mb-2"><Icons.Clipboard /></div>
+                                            <div className="text-2xl font-black text-slate-800">{activeInst.staff}</div>
+                                            <div className="text-[0.7rem] font-bold text-slate-500 uppercase tracking-widest mt-1">Staff on record</div>
+                                        </div>
+                                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 flex flex-col justify-between">
+                                            <div className="flex items-center gap-2 text-emerald-500 mb-2"><Icons.CheckCircleSolid /></div>
+                                            <div className="text-2xl font-black text-slate-800">{activeInst.attendanceToday}</div>
+                                            <div className="text-[0.7rem] font-bold text-slate-500 uppercase tracking-widest mt-1">Attendance Today</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Detailed Info */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 border-t border-slate-100 pt-6">
+                                        <div className="flex items-start gap-3">
+                                            <div className="text-slate-400 mt-0.5"><Icons.MapPin /></div>
+                                            <div>
+                                                <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Full Address</p>
+                                                <p className="text-[0.95rem] font-bold text-slate-700 leading-snug">{activeInst.address}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="text-slate-400 mt-0.5"><Icons.Phone /></div>
+                                            <div>
+                                                <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Contact Number</p>
+                                                <p className="text-[0.95rem] font-bold text-slate-700">{activeInst.phone}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="text-slate-400 mt-0.5"><Icons.Calendar /></div>
+                                            <div>
+                                                <p className="text-[0.75rem] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Last Inspection Date</p>
+                                                <p className="text-[0.95rem] font-bold text-slate-700">{activeInst.lastInsp}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Bar */}
+                                    <div className="flex flex-col sm:flex-row items-center gap-4 mt-auto pt-6 border-t border-slate-100">
+                                        <button className="w-full sm:flex-1 bg-primary-800 hover:bg-primary-900 text-white font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-md hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                            <Icons.VideoCall /> Start Video Call
+                                        </button>
+                                        <button onClick={() => onNavigate('inspection')} className="w-full sm:flex-1 bg-white border-2 border-slate-200 text-slate-700 hover:border-primary-300 hover:text-primary-800 font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-sm hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                                            <Icons.Clipboard /> Request Inspection
+                                        </button>
+                                        <button className="w-full sm:w-auto bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-extrabold py-3.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2">
+                                            <Icons.Flag /> Flag Institute
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ MAIN APP CONTROLLER ============
+        function App() {
+            // Set exact default page based on user request
+            const [activePage, setActivePage] = useState('institutes');
+
+            // Scroll to top automatically when changing tabs
+            useEffect(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, [activePage]);
+
+            return (
+                <div className="flex min-h-screen bg-surface font-sans">
+                    <Sidebar active={activePage} setActive={setActivePage} />
+                    <div className="ml-64 w-full overflow-hidden relative">
+                        {/* Wrapper for smooth CSS entrance animation on page load/switch */}
+                        <div key={activePage} className="animate-page-enter w-full min-h-screen origin-top">
+                            {activePage === 'institutes' && <InstitutesPage onNavigate={setActivePage} />}
+                            
+                            {/* Fallbacks for other pages so clicking navigation doesn't crash */}
+                            {activePage !== 'institutes' && (
+                                <div className="p-12 text-center text-slate-500 font-medium w-full flex flex-col items-center justify-center min-h-[80vh]">
+                                    <p className="text-3xl font-black text-slate-800 capitalize mb-3 tracking-tight">{activePage.replace('-', ' ')} Page</p>
+                                    <p className="text-sm mt-4 cursor-pointer bg-white px-6 py-3 rounded-xl border border-slate-200 shadow-sm text-primary-700 font-extrabold hover:bg-slate-50 hover:shadow-md transition-all" onClick={() => setActivePage('institutes')}>
+                                        Return to Institutes Directory
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ============ RENDER ============
+        ReactDOM.createRoot(document.getElementById('root')).render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
+    </script>
+</body>
+</html>
