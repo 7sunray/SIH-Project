@@ -425,7 +425,13 @@
                                             zoom={11}
                                             height="220px"
                                             markers={[
-                                                { lat: activeInst.lat, lng: activeInst.lng, color: '#0f766e', popup: `<strong>${activeInst.name}</strong><br/>${activeInst.address}`, label: activeInst.name },
+                                                ...mockInstitutesData.map((institute) => ({
+                                                    lat: institute.lat,
+                                                    lng: institute.lng,
+                                                    color: institute.id === activeInst.id ? '#0f766e' : '#64748b',
+                                                    popup: `<strong>${institute.name}</strong><br/>${institute.district}<br/>Risk score: ${institute.riskScore}`,
+                                                    label: institute.name,
+                                                })),
                                                 { lat: activeInst.lat + 0.0025, lng: activeInst.lng - 0.0018, color: '#0ea5e9', popup: '<strong>Your GPS</strong><br/>Live verified', label: 'You are here' },
                                             ]}
                                         />
