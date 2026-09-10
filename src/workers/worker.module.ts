@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { buildRedisConnection } from '../queues/redis-connection';
 import { CctvHealthModule } from './cctv-health.module';
 import { AnomalyEscalationModule } from './anomaly-escalation.module';
 // NOTE: filename has a historical typo (aggregrate); keep import in sync.
@@ -18,10 +19,7 @@ import { StreamingConversionModule } from './streaming-conversion.module';
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6380),
-        },
+        connection: buildRedisConnection(config),
       }),
     }),
     CctvHealthModule,

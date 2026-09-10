@@ -63,6 +63,9 @@ async function bootstrap() {
     );
   }
 
-  await app.listen(3000);
+  // Render/Heroku-style hosts assign the port via PORT env.
+  const port = Number(process.env.PORT ?? 3000);
+  await app.listen(port);
+  logger.log(`Listening on port ${port}`);
 }
 bootstrap();

@@ -6,6 +6,7 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { DatabaseModule } from './database/database.module';
+import { buildRedisConnection } from './queues/redis-connection';
 import { CommonModule } from './common/common.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -39,10 +40,7 @@ import { QUEUES } from './queues/queue-definitions';
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6380),
-        },
+        connection: buildRedisConnection(config),
       }),
     }),
     ThrottlerModule.forRoot([
