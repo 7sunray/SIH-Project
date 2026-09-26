@@ -10,14 +10,9 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: govwatch-db
-          property: connectionString
+        sync: false # paste your existing Postgres connection string
       - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: govwatch-redis
-          property: connectionString
+        sync: false # paste your existing Key Value connection string
       - key: ENCRYPTION_KEY
         sync: false
       - key: S3_ENDPOINT
@@ -36,25 +31,12 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: govwatch-db
-          property: connectionString
+        sync: false # paste your existing Postgres connection string
       - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: govwatch-redis
-          property: connectionString
+        sync: false # paste your existing Key Value connection string
       - key: ENCRYPTION_KEY
         sync: false
 
-  - type: keyvalue
-    name: govwatch-redis
-    plan: free
-    maxmemoryPolicy: allkeys-lru
-    ipAllowList: [] # private: only reachable by our own Render services
-
-databases:
-  - name: govwatch-db
-    databaseName: dosje_db
-    user: dosje
-    plan: free
+# NOTE: database/Redis creation removed from this Blueprint — this account
+# already uses its one free Postgres + one free Key Value instance.
+# Paste their connection strings into DATABASE_URL / REDIS_URL when deploying.
