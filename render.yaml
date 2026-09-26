@@ -2,6 +2,7 @@ services:
   - type: web
     name: govwatch-app
     runtime: docker
+    region: oregon # must match rediss + Postgres region: internal URLs only work in-region
     dockerContext: .
     dockerfilePath: ./Dockerfile.fullstack
     plan: free
