@@ -8,8 +8,12 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   const passwordHash = await bcrypt.hash('Admin@123', 12);
 
-  await prisma.user.create({
-    data: {
+  // Upsert (not create) so re-running the seed on every deploy never fails
+  // with a unique-constraint error once the admin already exists.
+  await prisma.user.upsert({
+    where: { email: 'superadmin@dosje.gov.in' },
+    update: {},
+    create: {
       email: 'superadmin@dosje.gov.in',
       passwordHash,
       firstName: 'System',
