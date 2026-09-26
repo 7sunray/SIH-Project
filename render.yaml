@@ -6,7 +6,6 @@ services:
     dockerfilePath: ./Dockerfile.fullstack
     plan: free
     healthCheckPath: /health
-    preDeployCommand: npx prisma db push
     envVars:
       - key: NODE_ENV
         value: production
@@ -52,6 +51,7 @@ services:
     name: govwatch-redis
     plan: free
     maxmemoryPolicy: allkeys-lru
+    ipAllowList: [] # private: only reachable by our own Render services
 
 databases:
   - name: govwatch-db
