@@ -48,13 +48,13 @@ services:
       - key: ENCRYPTION_KEY
         sync: false
 
+  - type: keyvalue
+    name: govwatch-redis
+    plan: free
+    maxmemoryPolicy: allkeys-lru
+
 databases:
   - name: govwatch-db
     databaseName: dosje_db
     user: dosje
     plan: free
-
-  - name: govwatch-redis
-    type: keyvalue
-    plan: free
-    maxmemoryPolicy: allkeys-lru
