@@ -20,23 +20,8 @@ services:
       - key: CORS_ORIGIN
         value: https://govwatch-app.onrender.com
 
-  - type: worker
-    name: govwatch-worker
-    runtime: docker
-    dockerContext: .
-    dockerfilePath: ./Dockerfile.fullstack
-    dockerCommand: node dist/worker-main.js
-    plan: free
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        sync: false # paste your existing Postgres connection string
-      - key: REDIS_URL
-        sync: false # paste your existing Key Value connection string
-      - key: ENCRYPTION_KEY
-        sync: false
-
 # NOTE: database/Redis creation removed from this Blueprint — this account
 # already uses its one free Postgres + one free Key Value instance.
 # Paste their connection strings into DATABASE_URL / REDIS_URL when deploying.
+# NOTE 2: no background worker — Render free plan doesn't offer workers.
+# The web service still runs the scheduler; queues fully work once upgraded.
