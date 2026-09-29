@@ -9,6 +9,12 @@ echo "==> Ensuring PostGIS extension..."
 node -e 'const{Client}=require("pg");(async()=>{const c=new Client({connectionString:process.env.DATABASE_URL});await c.connect();await c.query("CREATE EXTENSION IF NOT EXISTS postgis");await c.end();console.log("postgis ok")})().catch(e=>{console.error("postgis failed:",e.message);process.exit(1)})'
 
 echo "==> Syncing Prisma schema..."
+echo "--- diagnostics ---"
+node --version
+npm ls prisma ts-node typescript 2>&1 | head -8
+ls /app/node_modules/prisma/config.js 2>&1
+node -e "console.log(require.resolve('prisma/config'))" 2>&1
+echo "--- end diagnostics ---"
 npx prisma db push
 
 echo "==> Seeding admin user..."
