@@ -27,6 +27,8 @@ COPY --from=builder /app/keys ./keys
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma7.config.ts /app/tsconfig.json ./
+COPY start-prod.sh ./
+RUN sed -i 's/\r$//' start-prod.sh && chmod +x start-prod.sh
 RUN npm install --no-save --ignore-scripts --legacy-peer-deps prisma@7.10.0 ts-node@10.9.2 typescript@6.0.3
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+CMD ["sh", "start-prod.sh"]
