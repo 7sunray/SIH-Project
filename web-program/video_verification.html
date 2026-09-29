@@ -849,6 +849,49 @@
             
             const toggleChecklist = (id) => setChecklistItems(prev => prev.map(item => item.id === id ? { ...item, checked: !item.checked } : item));
 
+            // Random video call: uses the device camera/mic for a live preview.
+            // (Peer-to-peer inspection-room calling is not wired yet.)
+            const [callActive, setCallActive] = useState(false);
+            const [callError, setCallError] = useState('');
+            const localVideoRef = useRef(null);
+            const streamRef = useRef(null);
+
+            const startRandomCall = async () => {
+                setCallError('');
+                try {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        throw new Error('unsupported');
+                    }
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    streamRef.current = stream;
+                    setCallActive(true);
+                } catch (err) {
+                    setCallError(err && err.name === 'NotAllowedError'
+                        ? 'Camera/mic permission was blocked. Click the camera icon in the browser address bar, allow access, and try again.'
+                        : 'Could not start the camera here. Camera access needs HTTPS (or localhost) plus a working camera.');
+                }
+            };
+
+            const endRandomCall = () => {
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach((track) => track.stop());
+                    streamRef.current = null;
+                }
+                setCallActive(false);
+            };
+
+            useEffect(() => {
+                if (callActive && localVideoRef.current && streamRef.current) {
+                    localVideoRef.current.srcObject = streamRef.current;
+                }
+            }, [callActive]);
+
+            useEffect(() => () => {
+                if (streamRef.current) {
+                    streamRef.current.getTracks().forEach((track) => track.stop());
+                }
+            }, []);
+
             return (
                 <div className="flex-1 w-full min-h-screen relative pb-20 overflow-x-hidden">
                     <div className="hero-pattern text-white pt-10 pb-36 px-8 lg:px-12 w-full rounded-bl-[2.5rem] rounded-br-[2.5rem] shadow-lg relative z-0">
@@ -889,9 +932,18 @@
                                         <div className="flex-1">
                                             <h3 className="text-3xl font-black tracking-tight mb-4 leading-tight">Start Random<br/>Video Verification</h3>
                                             <p className="text-emerald-100/80 font-medium mb-8 max-w-sm">Unscheduled call to verify real-time presence of staff and beneficiaries.</p>
-                                            <button className="bg-emerald-500 hover:bg-emerald-400 text-primary-950 font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center gap-3 w-fit">
-                                                <Icons.CameraIcon /> Initiate Random Video Call &rarr;
+                                            <button onClick={callActive ? endRandomCall : startRandomCall} className="bg-emerald-500 hover:bg-emerald-400 text-primary-950 font-extrabold py-3.5 px-6 rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center gap-3 w-fit">
+                                                <Icons.CameraIcon /> {callActive ? 'End Verification Call' : 'Initiate Random Video Call \u2192'}
                                             </button>
+                                            {callActive && (
+                                                <div className="mt-6 rounded-2xl overflow-hidden border border-white/20 bg-black/40 max-w-sm">
+                                                    <video ref={localVideoRef} autoPlay playsInline muted className="w-full max-h-72 object-cover" />
+                                                    <p className="px-4 py-2 text-[0.7rem] font-bold uppercase tracking-widest text-emerald-200/80">Live preview &mdash; your camera</p>
+                                                </div>
+                                            )}
+                                            {callError && (
+                                                <p className="mt-4 text-sm font-bold text-red-300 max-w-sm">{callError}</p>
+                                            )}
                                         </div>
                                         
                                         <div className="flex flex-col items-center gap-3">
