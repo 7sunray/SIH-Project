@@ -6,7 +6,9 @@ services:
     dockerContext: .
     dockerfilePath: ./Dockerfile.fullstack
     plan: free
-    healthCheckPath: /health
+    # Liveness probe uses /api (always 200). Deep health (DB/Redis/S3)
+    # stays available at /health for monitoring.
+    healthCheckPath: /api
     envVars:
       - key: NODE_ENV
         value: production
