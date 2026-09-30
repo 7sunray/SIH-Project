@@ -894,7 +894,7 @@
                                 <div className="w-full h-px bg-slate-100"></div>
                                 <div className="flex justify-between items-center text-[0.95rem]">
                                     <span className="text-slate-500 font-bold flex items-center gap-2"><Icons.Calendar /> Inspection Time</span>
-                                    <span className="font-extrabold text-slate-800">6 Sept 2026, 6:01 PM</span>
+                                    <span className="font-extrabold text-slate-800">{new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}</span>
                                 </div>
                             </div>
                         </div>
