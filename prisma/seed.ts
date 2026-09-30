@@ -45,8 +45,8 @@ const INSTITUTES = [
     state: 'Delhi',
     district: 'Dwarka',
     pinCode: '110075',
-    lng: 77.0347,
-    lat: 28.5931,
+    lng: 77.0424,
+    lat: 28.5975,
   },
   {
     id: '55555555-5555-4555-8555-555555555555',
@@ -84,8 +84,8 @@ const PROJECTS = [
     title: 'Rukmini Shelter Upkeep 2026',
     schemeCode: 'SCH/DL/2026/01',
     instituteNgoId: '44444444-4444-4444-8444-444444444444',
-    lng: 77.0347,
-    lat: 28.5931,
+    lng: 77.0424,
+    lat: 28.5975,
     beneficiaryCount: 120,
   },
   {
@@ -185,7 +185,7 @@ async function main() {
 
   // Keep coordinates correct even if an older seed run stored wrong points.
   const COORD_FIX = [
-    { regNo: 'MSJE/DL/00231', lng: 77.0347, lat: 28.5931 },
+    { regNo: 'MSJE/DL/00231', lng: 77.0424, lat: 28.5975 },
     { regNo: 'MSJE/TN/00456', lng: 76.9558, lat: 11.0168 },
     { regNo: 'MSJE/WB/00902', lng: 88.3639, lat: 22.5726 },
   ];
@@ -196,7 +196,7 @@ async function main() {
     `;
   }
   await prisma.$executeRaw`
-    UPDATE projects SET location = ST_SetSRID(ST_MakePoint(77.0347, 28.5931), 4326), "updatedAt" = NOW()
+    UPDATE projects SET location = ST_SetSRID(ST_MakePoint(77.0424, 28.5975), 4326), "updatedAt" = NOW()
     WHERE "schemeCode" = 'SCH/DL/2026/01';
   `;
 
