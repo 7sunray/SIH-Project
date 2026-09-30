@@ -372,6 +372,16 @@
             const distM = livePos ? haversineM(livePos.lat, livePos.lng, institute.lat, institute.lng) : null;
             const distText = distM == null ? 'Waiting for GPS…' : distM < 1000 ? ('Within ' + Math.round(distM) + 'm of the registered institute address.') : ((distM / 1000).toFixed(1) + ' km away from the registered address.');
             const verified = distM != null && distM < 500;
+
+            // Google map: single institute pin until GPS locks, then a
+            // you -> institute route so BOTH markers show (keyless embed).
+            const gps3 = livePos ? { lat: livePos.lat.toFixed(3), lng: livePos.lng.toFixed(3) } : null;
+            const mapSrc = gps3
+                ? 'https://maps.google.com/maps?saddr=' + gps3.lat + ',' + gps3.lng + '&daddr=' + institute.lat + ',' + institute.lng + '&output=embed'
+                : 'https://maps.google.com/maps?q=' + institute.lat + ',' + institute.lng + '&t=k&z=17&output=embed';
+            const mapsLink = gps3
+                ? 'https://www.google.com/maps/dir/?api=1&origin=' + livePos.lat + ',' + livePos.lng + '&destination=' + institute.lat + ',' + institute.lng
+                : 'https://www.google.com/maps/search/?api=1&query=' + institute.lat + ',' + institute.lng;
             const [step, setStep] = useState(1);
             
             // Step 2 State (Expanded to 3 categories to fill horizontal desktop space)
@@ -522,19 +532,25 @@
                         <div className="w-full lg:w-7/12 rounded-3xl border border-slate-200 overflow-hidden relative min-h-[380px] shadow-inner bg-slate-100">
                             <iframe
                                 title="Institute location on Google Maps"
-                                src={'https://maps.google.com/maps?q=' + institute.lat + ',' + institute.lng + '&t=k&z=17&output=embed'}
+                                src={mapSrc}
                                 className="absolute inset-0 w-full h-full border-0"
                                 loading="lazy"
                                 referrerPolicy="no-referrer-when-downgrade"
                             />
                             <a
-                                href={'https://www.google.com/maps/search/?api=1&query=' + institute.lat + ',' + institute.lng}
+                                href={mapsLink}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="absolute top-4 right-4 bg-white text-primary-700 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 flex items-center gap-2 shadow-md hover:bg-slate-50 transition z-20"
                             >
                                 <Icons.MapIcon /> Open in Google Maps
                             </a>
+                            {gps3 && (
+                                <div className="absolute bottom-4 left-4 bg-white/95 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 border border-slate-200 shadow-md flex items-center gap-3 z-20">
+                                    <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>You</span>
+                                    <span className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500"></span>{institute.name.split(' ').slice(0, 2).join(' ')}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
