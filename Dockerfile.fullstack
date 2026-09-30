@@ -14,7 +14,9 @@ COPY nest-cli.json tsconfig*.json ./
 COPY .npmrc ./
 COPY web-program ./public
 RUN npm run build
-RUN npm prune --omit=dev
+# NOTE: deliberately NO `npm prune` — the final image ships these exact
+# node_modules (prisma 7.10.0, ts-node, typescript from the lockfile),
+# because start-prod.sh runs the prisma CLI + seed at container boot.
 
 FROM node:20-alpine
 WORKDIR /app
@@ -29,9 +31,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma7.config.ts /app/tsconfig.json ./
 COPY start-prod.sh ./
 RUN sed -i 's/\r$//' start-prod.sh && chmod +x start-prod.sh
-# Pinned to the lockfile versions. Install scripts MUST run here: prisma's
-# postinstall builds the `prisma/config` module imported by prisma7.config.ts
-# (with --ignore-scripts, `npx prisma db push` fails at container boot).
-RUN npm install --no-save --legacy-peer-deps prisma@7.10.0 ts-node@10.9.2 typescript@6.0.3
+# No extra npm install: full node_modules (incl. dev deps) come from the
+# builder above, byte-identical to a verified local `npm ci`.
 EXPOSE 3000
 CMD ["sh", "start-prod.sh"]
