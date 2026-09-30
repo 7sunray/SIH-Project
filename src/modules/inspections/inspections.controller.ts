@@ -9,8 +9,8 @@ export class InspectionsController {
   constructor(private readonly inspectionsService: InspectionsService) {}
 
   @Post('assign')
-  assign(@Body() body: { inspectionId: string; district?: string }) {
-    return this.inspectionsService.assign(body.inspectionId, body.district);
+  assign(@Body() body: { inspectionId: string; district?: string; officerId?: string }) {
+    return this.inspectionsService.assign(body.inspectionId, body.district, body.officerId);
   }
 
   @Get()

@@ -13,6 +13,8 @@ import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { InspectionsModule } from './modules/inspections/inspections.module';
+import { InstitutesModule } from './modules/institutes/institutes.module';
+import { ProjectsModule } from './modules/projects/projects.module';
 import { MediaModule } from './modules/media/media.module';
 import { AnomaliesModule } from './modules/anomalies/anomalies.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
@@ -60,6 +62,8 @@ import { QUEUES } from './queues/queue-definitions';
     UsersModule,
     AuthModule,
     InspectionsModule,
+    InstitutesModule,
+    ProjectsModule,
     MediaModule,
     AnomaliesModule,
     AnalyticsModule,

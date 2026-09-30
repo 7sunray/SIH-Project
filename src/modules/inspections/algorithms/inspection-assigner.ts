@@ -1,7 +1,7 @@
 // src/modules/inspection/algorithms/inspection-assigner.ts
 
-import { InspectionStatus } from '@prisma/client';
-import { Injectable, Logger } from '@nestjs/common';
+import { InspectionStatus, Role } from '@prisma/client';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 
 interface AssignmentCandidate {
@@ -76,6 +76,48 @@ export class InspectionAssigner {
 
     this.logger.log(`Assigned ${assignments.length} inspections in batch ${batchId}`);
     return assignments;
+  }
+
+  /**
+   * Assigns a single existing inspection: either to the explicitly chosen
+   * officer, or to a random eligible officer (PMU_OFFICER / NGO_STAFF,
+   * optionally filtered by district jurisdiction).
+   */
+  async assignInspectionRandomly(inspectionId: string, district?: string, officerId?: string) {
+    let assignedOfficer: { id: string } | null = null;
+
+    if (officerId) {
+      assignedOfficer = await this.prisma.user.findUnique({ where: { id: officerId } });
+      if (!assignedOfficer) {
+        throw new BadRequestException('Selected officer not found.');
+      }
+    } else {
+      // NOTE: valid Role enum members only (there is no NGO_STAFF role).
+      const whereClause: any = {
+        role: { in: [Role.PMU_OFFICER, Role.NGO_MANAGER, Role.NGO_DATA_SUBMITTER] },
+      };
+      if (district) {
+        whereClause.jurisdictionDist = district;
+      }
+      const eligibleOfficers = await this.prisma.user.findMany({ where: whereClause });
+      if (!eligibleOfficers || eligibleOfficers.length === 0) {
+        throw new BadRequestException('No eligible officers available for assignment in this jurisdiction.');
+      }
+      assignedOfficer = eligibleOfficers[Math.floor(Math.random() * eligibleOfficers.length)];
+    }
+
+    return this.prisma.inspection.update({
+      where: { id: inspectionId },
+      data: {
+        assignedOfficerId: assignedOfficer.id,
+        status: InspectionStatus.SCHEDULED,
+      },
+      include: {
+        assignedOfficer: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+      },
+    });
   }
 
   private async getAvailableOfficers(): Promise<AssignmentCandidate[]> {

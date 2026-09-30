@@ -21,25 +21,26 @@ export class InstitutesService {
     const { search, page = 1, limit = 10 } = queryDto;
     const offset = (page - 1) * limit;
 
+    // NOTE: columns are camelCase in this database (Prisma db push, no @map).
     if (search) {
       const searchTerm = `%${search}%`;
       return this.prisma.$queryRaw`
-        SELECT id, name, address, ST_AsText(location) as location 
-        FROM institute_ngos 
-        WHERE name ILIKE ${searchTerm} OR address ILIKE ${searchTerm}
+        SELECT id, name, "registrationNo", type, "contactEmail", state, district, status
+        FROM institute_ngos
+        WHERE name ILIKE ${searchTerm} OR "registrationNo" ILIKE ${searchTerm} OR district ILIKE ${searchTerm}
         LIMIT ${limit} OFFSET ${offset};
       `;
     }
 
     return this.prisma.$queryRaw`
-      SELECT id, name, address, ST_AsText(location) as location 
-      FROM institute_ngos 
+      SELECT id, name, "registrationNo", type, "contactEmail", state, district, status
+      FROM institute_ngos
       LIMIT ${limit} OFFSET ${offset};
     `;
   }
 
   async findOne(id: string) {
-    return this.prisma.$queryRaw`SELECT id, name, address, ST_AsText(location) as location FROM institute_ngos WHERE id = ${id}::uuid;`;
+    return this.prisma.$queryRaw`SELECT id, name, "registrationNo", type, "contactEmail", state, district, status FROM institute_ngos WHERE id = ${id}::uuid;`;
   }
 
   async update(id: string,_updateDto: UpdateInstituteDto) {

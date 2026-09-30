@@ -36,27 +36,24 @@ export class ProjectsService {
     if (search) {
       const searchTerm = `%${search}%`;
       return this.prisma.$queryRaw`
-        SELECT id, name, description, budget, radius_meters, scheme_code, 
-               sanctioned_amount, beneficiary_count, ST_AsText(location) as location 
-        FROM projects 
-        WHERE name ILIKE ${searchTerm} OR description ILIKE ${searchTerm}
+        SELECT id, title, "schemeCode", "instituteNgoId", status, "beneficiaryCount"
+        FROM projects
+        WHERE title ILIKE ${searchTerm} OR "schemeCode" ILIKE ${searchTerm}
         LIMIT ${limit} OFFSET ${offset};
       `;
     }
 
     return this.prisma.$queryRaw`
-      SELECT id, name, description, budget, radius_meters, scheme_code, 
-             sanctioned_amount, beneficiary_count, ST_AsText(location) as location 
-      FROM projects 
+      SELECT id, title, "schemeCode", "instituteNgoId", status, "beneficiaryCount"
+      FROM projects
       LIMIT ${limit} OFFSET ${offset};
     `;
   }
 
   async findOne(id: string) {
     return this.prisma.$queryRaw`
-      SELECT id, name, description, budget, radius_meters, scheme_code, 
-             sanctioned_amount, beneficiary_count, ST_AsText(location) as location 
-      FROM projects 
+      SELECT id, title, "schemeCode", "instituteNgoId", status, "beneficiaryCount"
+      FROM projects
       WHERE id = ${id}::uuid;
     `;
   }

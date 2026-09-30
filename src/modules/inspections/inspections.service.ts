@@ -11,8 +11,8 @@ export class InspectionsService {
     private readonly mediaValidator: MediaValidator,
   ) {}
 
-  async assign(inspectionId: string, district?: string) {
-    return await (this.assigner as any).assignInspectionRandomly(inspectionId, district);
+  async assign(inspectionId: string, district?: string, officerId?: string) {
+    return await this.assigner.assignInspectionRandomly(inspectionId, district, officerId);
   }
 
   async findAll(query: { status?: string; search?: string }) {
