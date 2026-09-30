@@ -451,10 +451,24 @@
 
             // Lightbox viewer for gallery items.
             const [lightboxItem, setLightboxItem] = useState(null);
+            const [lightboxClock, setLightboxClock] = useState('');
             const removeEvidence = (id) => {
                 if (lightboxItem && lightboxItem.id === id) setLightboxItem(null);
                 setUserEvidence((prev) => prev.filter((x) => x.id !== id));
             };
+
+            // Ticking CCTV timestamp while the viewer is open.
+            useEffect(() => {
+                if (!lightboxItem) return;
+                const fmt = () => {
+                    const d = new Date();
+                    const p = (n) => String(n).padStart(2, '0');
+                    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+                };
+                setLightboxClock(fmt());
+                const t = setInterval(() => setLightboxClock(fmt()), 1000);
+                return () => clearInterval(t);
+            }, [lightboxItem]);
 
             // Step 4 State
             const [assessment, setAssessment] = useState(null);
@@ -781,8 +795,8 @@
 
                     {/* Expand grid to 4 columns on large screens to fill space */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                        {galleryItems.map(item => (
-                            <div key={item.id} onClick={() => setLightboxItem(item)} className="border border-slate-200 rounded-[1.25rem] overflow-hidden flex flex-col hover:shadow-lg hover:border-primary-300 transition-all bg-white group cursor-pointer">
+                        {galleryItems.map((item, gIdx) => (
+                            <div key={item.id} onClick={() => setLightboxItem({ ...item, camNo: gIdx + 1 })} className="border border-slate-200 rounded-[1.25rem] overflow-hidden flex flex-col hover:shadow-lg hover:border-primary-300 transition-all bg-white group cursor-pointer">
                                 <div className="h-44 w-full relative overflow-hidden bg-slate-100">
                                     {item.kind === 'video' ? (
                                         <video src={item.url} className="w-full h-full object-cover" preload="metadata" playsInline onClick={(e) => e.stopPropagation()} controls />
@@ -822,28 +836,29 @@
                         </button>
                     </div>
 
-                    {/* Lightbox: click any evidence card to view it large */}
+                    {/* CCTV-style viewer: camera label + live timestamp overlays */}
                     {lightboxItem && (
-                        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8" onClick={() => setLightboxItem(null)}>
-                            <div className="bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                                <div className="bg-slate-950 flex items-center justify-center max-h-[65vh]">
-                                    {lightboxItem.kind === 'video' ? (
-                                        <video src={lightboxItem.url} className="w-full max-h-[65vh]" controls autoPlay playsInline />
-                                    ) : (
-                                        <img src={lightboxItem.img || lightboxItem.url} alt={lightboxItem.title} className="w-full max-h-[65vh] object-contain" />
-                                    )}
+                        <div className="fixed inset-0 z-50 bg-black flex flex-col" onClick={() => setLightboxItem(null)}>
+                            <div className="relative flex-1 flex items-center justify-center overflow-hidden min-h-0" onClick={(e) => e.stopPropagation()}>
+                                {lightboxItem.kind === 'video' ? (
+                                    <video src={lightboxItem.url} className="max-w-full max-h-full" controls autoPlay playsInline />
+                                ) : (
+                                    <img src={lightboxItem.img || lightboxItem.url} alt={lightboxItem.title} className="max-w-full max-h-full object-contain" />
+                                )}
+                                <div className="absolute top-4 left-4 md:top-6 md:left-6 bg-black/70 text-white px-4 py-2 font-mono font-bold tracking-wider text-sm md:text-xl">
+                                    CAM {String(lightboxItem.camNo || 1).padStart(2, '0')} - {(lightboxItem.title || 'Evidence').toUpperCase()}
                                 </div>
-                                <div className="p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                    <div>
-                                        <h5 className="font-extrabold text-slate-800 text-lg">{lightboxItem.title}</h5>
-                                        <p className="text-xs font-bold text-slate-500 mt-1">{lightboxItem.time} &nbsp;·&nbsp; {Number(lightboxItem.lat).toFixed(4)}° N, {Number(lightboxItem.lng).toFixed(4)}° E</p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {String(lightboxItem.id).startsWith('u') && (
-                                            <button onClick={() => removeEvidence(lightboxItem.id)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-red-600 border border-red-200 hover:bg-red-50 transition-all">Remove</button>
-                                        )}
-                                        <button onClick={() => setLightboxItem(null)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white bg-primary-800 hover:bg-primary-900 transition-all">Close</button>
-                                    </div>
+                                <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-black/70 text-white px-4 py-2 font-mono font-bold tracking-wider text-sm md:text-xl">
+                                    {lightboxClock}
+                                </div>
+                            </div>
+                            <div className="bg-black border-t border-white/10 px-4 py-3 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                                <p className="text-xs md:text-sm font-bold text-white/80">{lightboxItem.title} · {lightboxItem.time} · {Number(lightboxItem.lat).toFixed(4)}° N, {Number(lightboxItem.lng).toFixed(4)}° E</p>
+                                <div className="flex gap-2">
+                                    {String(lightboxItem.id).startsWith('u') && (
+                                        <button onClick={() => removeEvidence(lightboxItem.id)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-red-300 border border-red-400/50 hover:bg-red-500/10 transition-all">Remove</button>
+                                    )}
+                                    <button onClick={() => setLightboxItem(null)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-black bg-white hover:bg-slate-200 transition-all">Close</button>
                                 </div>
                             </div>
                         </div>
