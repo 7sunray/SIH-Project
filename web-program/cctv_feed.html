@@ -215,6 +215,36 @@
         function LiveCCTVPage({ onNavigate }) {
             const [filter, setFilter] = useState('All Feeds (18)');
             const [search, setSearch] = useState('');
+            const [activeFeed, setActiveFeed] = useState(null);
+            const [settingsFeed, setSettingsFeed] = useState(null);
+            const [feedPrefs, setFeedPrefs] = useState(() => { try { return JSON.parse(localStorage.getItem('gw_cctv_prefs') || '{}'); } catch (e) { return {}; } });
+
+            const togglePref = (feedId, key) => {
+                setFeedPrefs((prev) => {
+                    const cur = prev[feedId] || { motion: true, recording: true };
+                    const next = { ...prev, [feedId]: { ...cur, [key]: !cur[key] } };
+                    try { localStorage.setItem('gw_cctv_prefs', JSON.stringify(next)); } catch (e) {}
+                    return next;
+                });
+            };
+
+            const snapshotFeed = async (feed) => {
+                try {
+                    const res = await fetch(feed.img, { mode: 'cors' });
+                    if (!res.ok) throw new Error('fetch failed');
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = feed.id + '-' + Date.now() + '.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                } catch (e) {
+                    window.open(feed.img, '_blank');
+                }
+            };
             
             const filters = [
                 { id: 'All Feeds (18)', dot: 'bg-emerald-400' }, 
@@ -246,7 +276,9 @@
                 }
             ];
 
-            const filteredFeeds = filter === 'All Feeds (18)' ? mockFeeds : mockFeeds.filter(f => filter.includes(f.type));
+            const q = search.trim().toLowerCase();
+            const baseFeeds = filter === 'All Feeds (18)' ? mockFeeds : mockFeeds.filter(f => filter.includes(f.type));
+            const filteredFeeds = q ? baseFeeds.filter(f => (f.title + ' ' + f.loc + ' ' + f.id).toLowerCase().includes(q)) : baseFeeds;
 
             return (
                 <div className="flex-1 w-full min-h-screen relative pb-10 bg-surface">
@@ -326,7 +358,7 @@
                                             <Icons.CameraIcon />
                                         </div>
                                         
-                                        <div className="absolute bottom-3 right-3 bg-black/50 text-white p-2 rounded-lg backdrop-blur-md hover:bg-black/70 transition">
+                                        <div className="absolute bottom-3 right-3 bg-black/50 text-white p-2 rounded-lg backdrop-blur-md hover:bg-black/70 transition cursor-pointer" onClick={(e) => { e.stopPropagation(); setActiveFeed(feed); }}>
                                             <Icons.Expand />
                                         </div>
                                     </div>
@@ -353,10 +385,10 @@
                                         {/* Action Bar */}
                                         <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
                                             <div className="flex gap-4 text-slate-400">
-                                                <div className="hover:text-primary-700 transition cursor-pointer"><Icons.CameraIcon /></div>
-                                                <div className="hover:text-primary-700 transition cursor-pointer"><Icons.Settings /></div>
+                                                <div title="Take snapshot" className="hover:text-primary-700 transition cursor-pointer" onClick={() => snapshotFeed(feed)}><Icons.CameraIcon /></div>
+                                                <div title="Feed settings" className="hover:text-primary-700 transition cursor-pointer" onClick={() => setSettingsFeed(feed)}><Icons.Settings /></div>
                                             </div>
-                                            <div className="text-slate-300 group-hover:text-primary-700 transition transform group-hover:translate-x-1">
+                                            <div title="Open feed details" className="text-slate-300 group-hover:text-primary-700 transition transform group-hover:translate-x-1 cursor-pointer" onClick={() => setActiveFeed(feed)}>
                                                 <Icons.ChevronRight />
                                             </div>
                                         </div>
@@ -390,6 +422,50 @@
                         </div>
 
                     </div>
+
+                    {/* Feed Detail Viewer */}
+                    {activeFeed && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8" onClick={() => setActiveFeed(null)}>
+                            <div className="bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                                <div className="relative bg-slate-900">
+                                    <img src={activeFeed.img} alt={activeFeed.title} className="w-full max-h-[55vh] object-cover" />
+                                    <div className={`absolute top-4 left-4 text-white px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase flex items-center gap-2 shadow-md ${activeFeed.type === 'Live' ? 'bg-emerald-500/90' : 'bg-red-500/90'}`}>
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div> {activeFeed.type}
+                                    </div>
+                                    <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-lg text-xs font-bold">{activeFeed.time}</div>
+                                </div>
+                                <div className="p-5 md:p-6">
+                                    <h4 className="font-extrabold text-slate-800 text-xl">{activeFeed.title}</h4>
+                                    <p className="text-sm font-semibold text-slate-500 mt-1">{activeFeed.loc} · {activeFeed.id}</p>
+                                    <div className="flex flex-wrap gap-2 mt-4">
+                                        <button onClick={() => snapshotFeed(activeFeed)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-primary-800 border border-primary-200 hover:bg-primary-50 transition-all">Take Snapshot</button>
+                                        <button onClick={() => window.location.href = 'video_verification.html'} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-primary-800 border border-primary-200 hover:bg-primary-50 transition-all">Open Video Verification</button>
+                                        <button onClick={() => setActiveFeed(null)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white bg-primary-800 hover:bg-primary-900 transition-all">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Feed Settings (saved per camera on this device) */}
+                    {settingsFeed && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8" onClick={() => setSettingsFeed(null)}>
+                            <div className="bg-white rounded-3xl overflow-hidden max-w-md w-full shadow-2xl p-6 md:p-8" onClick={(e) => e.stopPropagation()}>
+                                <h4 className="font-extrabold text-slate-800 text-xl">{settingsFeed.title}</h4>
+                                <p className="text-sm font-semibold text-slate-500 mt-1 mb-6">{settingsFeed.id} · {settingsFeed.loc}</p>
+                                {[['motion', 'Motion alerts'], ['recording', '24/7 recording']].map(([key, label]) => {
+                                    const on = (feedPrefs[settingsFeed.id] || { motion: true, recording: true })[key] !== false;
+                                    return (
+                                        <button key={key} onClick={() => togglePref(settingsFeed.id, key)} className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-primary-300 transition-all mb-3">
+                                            <span className="font-extrabold text-slate-700 text-sm">{label}</span>
+                                            <span className={`px-4 py-1.5 rounded-full text-xs font-black tracking-widest ${on ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-400'}`}>{on ? 'ON' : 'OFF'}</span>
+                                        </button>
+                                    );
+                                })}
+                                <button onClick={() => setSettingsFeed(null)} className="w-full mt-3 px-5 py-3 rounded-xl text-sm font-extrabold text-white bg-primary-800 hover:bg-primary-900 transition-all">Done</button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
