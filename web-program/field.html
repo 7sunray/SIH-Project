@@ -292,15 +292,86 @@
 
         // ============ PAGE: FIELD INSPECTION WORKFLOW ============
         function FieldInspection({ onNavigateDashboard }) {
-            const institute = { 
-                id: 'MSJE/DL/00231', 
-                name: 'Rukmini Shelter Home for Women', 
-                lat: 28.5931, 
-                lng: 77.0347,
-                address: 'Sector 12, Dwarka, New Delhi, 110075',
+            // Demo fallback (used when not signed in; same places as the seeded demo data).
+            const demoInstitutes = [
+                { id: 'MSJE/DL/00231', name: 'Rukmini Shelter Home for Women', address: 'Sector 12, Dwarka, New Delhi, 110075', lat: 28.5931, lng: 77.0347 },
+                { id: 'MSJE/TN/00456', name: 'Nambikkai De-addiction Centre', address: '45, Avinashi Road, Coimbatore, 641001', lat: 11.0168, lng: 76.9558 },
+                { id: 'MSJE/WB/00902', name: 'Nirmal Jyoti Disability Rehab Centre', address: '22, Park Street, Kolkata, 700001', lat: 22.5726, lng: 88.3639 },
+            ];
+            const [instituteList, setInstituteList] = useState(demoInstitutes);
+            const [selectedInstituteId, setSelectedInstituteId] = useState(demoInstitutes[0].id);
+            const [livePos, setLivePos] = useState(null);
+            const [geoError, setGeoError] = useState('');
+
+            // Real institute list when signed in (same login as the Assign page).
+            useEffect(() => {
+                let stop = false;
+                (async () => {
+                    try {
+                        const t = localStorage.getItem('gw_token');
+                        if (!t) return;
+                        const res = await fetch('/institutes?limit=100', { headers: { Authorization: 'Bearer ' + t } });
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        const arr = Array.isArray(data) ? data : (data.data || []);
+                        const mapped = arr
+                            .filter((x) => x.lat != null && x.lng != null)
+                            .map((x) => ({
+                                id: x.registrationNo || x.id,
+                                name: x.name,
+                                address: [x.addressLine1, x.district, x.state, x.pinCode].filter(Boolean).join(', '),
+                                lat: Number(x.lat),
+                                lng: Number(x.lng),
+                            }));
+                        if (!stop && mapped.length) {
+                            setInstituteList(mapped);
+                            setSelectedInstituteId(mapped[0].id);
+                        }
+                    } catch (e) {}
+                })();
+                return () => { stop = true; };
+            }, []);
+
+            // Live device GPS.
+            useEffect(() => {
+                if (!navigator.geolocation) {
+                    setGeoError('Geolocation is not supported on this device/browser.');
+                    return;
+                }
+                const watchId = navigator.geolocation.watchPosition(
+                    (pos) => {
+                        setLivePos({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy || 0) });
+                        setGeoError('');
+                    },
+                    (err) => {
+                        setGeoError(err.code === 1
+                            ? 'Location permission was blocked. Allow location access in the address bar and reload.'
+                            : 'Could not read the device GPS.');
+                    },
+                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 }
+                );
+                return () => navigator.geolocation.clearWatch(watchId);
+            }, []);
+
+            const fallbackStatic = {
+                id: 'MSJE/DL/00231',
                 phone: '+91 98100 12345',
                 lastInsp: '12 Aug 2026'
             };
+            const selected = instituteList.find((x) => x.id === selectedInstituteId) || instituteList[0] || demoInstitutes[0];
+            const institute = { ...fallbackStatic, ...selected };
+
+            const haversineM = (lat1, lng1, lat2, lng2) => {
+                const R = 6371000;
+                const toRad = (d) => (d * Math.PI) / 180;
+                const a = Math.sin(toRad(lat2 - lat1) / 2) ** 2 +
+                    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                    Math.sin(toRad(lng2 - lng1) / 2) ** 2;
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            };
+            const distM = livePos ? haversineM(livePos.lat, livePos.lng, institute.lat, institute.lng) : null;
+            const distText = distM == null ? 'Waiting for GPS…' : distM < 1000 ? ('Within ' + Math.round(distM) + 'm of the registered institute address.') : ((distM / 1000).toFixed(1) + ' km away from the registered address.');
+            const verified = distM != null && distM < 500;
             const [step, setStep] = useState(1);
             
             // Step 2 State (Expanded to 3 categories to fill horizontal desktop space)
@@ -395,6 +466,18 @@
                         </div>
                     </div>
 
+                    {/* Institute Selector — map and cards follow the choice */}
+                    <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
+                        <span className="text-sm font-extrabold text-slate-500 uppercase tracking-widest">Inspecting:</span>
+                        <select
+                            value={selectedInstituteId}
+                            onChange={(e) => setSelectedInstituteId(e.target.value)}
+                            className="bg-white border border-slate-200 text-slate-800 text-sm font-bold rounded-xl px-4 py-3 outline-none focus:border-primary-500 shadow-sm cursor-pointer max-w-full"
+                        >
+                            {instituteList.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                        </select>
+                    </div>
+
                     {/* Split Pane Container for Desktop */}
                     <div className="flex flex-col lg:flex-row gap-8 mb-8">
                         
@@ -418,15 +501,20 @@
                                     <Icons.Crosshair /> <span>Your Current Location</span>
                                 </div>
                                 <p className="text-3xl font-black text-slate-800 tracking-tight mb-4 relative z-10">
-                                    {(institute.lat + 0.0002).toFixed(4)}° N, {(institute.lng - 0.0002).toFixed(4)}° E
+                                    {livePos ? livePos.lat.toFixed(4) + '° N, ' + livePos.lng.toFixed(4) + '° E' : 'Reading GPS…'}
                                 </p>
                                 <div className="flex flex-wrap items-center gap-2 relative z-10">
-                                    <span className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">Accuracy: ±4m</span>
-                                    <span className="bg-emerald-50 border border-emerald-200 text-primary-800 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5">
-                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                        Device GPS Active
-                                    </span>
+                                    <span className="bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">Accuracy: {livePos ? '±' + livePos.accuracy + 'm' : '—'}</span>
+                                    {livePos ? (
+                                        <span className="bg-emerald-50 border border-emerald-200 text-primary-800 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                                            Device GPS Active
+                                        </span>
+                                    ) : (
+                                        <span className="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm">Waiting for GPS signal</span>
+                                    )}
                                 </div>
+                                {geoError && <p className="mt-3 text-xs font-bold text-red-600 relative z-10">{geoError}</p>}
                             </div>
                         </div>
 
@@ -450,18 +538,22 @@
                         </div>
                     </div>
 
-                    {/* Verification Success Box */}
-                    <div className="bg-gradient-to-r from-emerald-50 to-teal-50/30 rounded-2xl p-6 border border-emerald-100 flex flex-col md:flex-row items-start md:items-center justify-between mb-8 shadow-sm">
+                    {/* Verification Result Box (live distance) */}
+                    <div className={`${verified ? 'from-emerald-50 to-teal-50/30 border-emerald-100' : 'from-amber-50 to-orange-50/30 border-amber-200'} bg-gradient-to-r rounded-2xl p-6 border flex flex-col md:flex-row items-start md:items-center justify-between mb-8 shadow-sm`}>
                         <div className="flex items-center gap-5">
-                            <div className="w-14 h-14 rounded-full bg-primary-700 flex items-center justify-center flex-shrink-0 shadow-[0_4px_14px_rgba(15,118,110,0.4)]">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            <div className={`w-14 h-14 rounded-full ${verified ? 'bg-primary-700 shadow-[0_4px_14px_rgba(15,118,110,0.4)]' : 'bg-amber-500 shadow-[0_4px_14px_rgba(245,158,11,0.4)]'} flex items-center justify-center flex-shrink-0`}>
+                                {verified ? (
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                ) : (
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                )}
                             </div>
                             <div>
-                                <h4 className="font-extrabold text-primary-900 text-xl tracking-tight">Location verified successfully</h4>
+                                <h4 className="font-extrabold text-primary-900 text-xl tracking-tight">{verified ? 'Location verified successfully' : 'Verifying presence…'}</h4>
                                 <p className="text-primary-700/80 text-sm font-semibold mt-1 flex items-center gap-2">
-                                    <span>Within 12m of the registered institute address.</span>
-                                    <span className="hidden md:inline w-1.5 h-1.5 rounded-full bg-primary-700/40"></span>
-                                    <span className="hidden md:inline">Recorded at 4:25:09 PM</span>
+                                    <span>{distText}</span>
+                                    {livePos && <span className="hidden md:inline w-1.5 h-1.5 rounded-full bg-primary-700/40"></span>}
+                                    {livePos && <span className="hidden md:inline">Live GPS reading</span>}
                                 </p>
                             </div>
                         </div>

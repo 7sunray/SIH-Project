@@ -25,7 +25,8 @@ export class InstitutesService {
     if (search) {
       const searchTerm = `%${search}%`;
       return this.prisma.$queryRaw`
-        SELECT id, name, "registrationNo", type, "contactEmail", state, district, status
+        SELECT id, name, "registrationNo", type, "contactEmail", "addressLine1", state, district, status,
+               ST_Y(location) AS lat, ST_X(location) AS lng
         FROM institute_ngos
         WHERE name ILIKE ${searchTerm} OR "registrationNo" ILIKE ${searchTerm} OR district ILIKE ${searchTerm}
         LIMIT ${limit} OFFSET ${offset};
@@ -33,14 +34,15 @@ export class InstitutesService {
     }
 
     return this.prisma.$queryRaw`
-      SELECT id, name, "registrationNo", type, "contactEmail", state, district, status
+      SELECT id, name, "registrationNo", type, "contactEmail", "addressLine1", state, district, status,
+             ST_Y(location) AS lat, ST_X(location) AS lng
       FROM institute_ngos
       LIMIT ${limit} OFFSET ${offset};
     `;
   }
 
   async findOne(id: string) {
-    return this.prisma.$queryRaw`SELECT id, name, "registrationNo", type, "contactEmail", state, district, status FROM institute_ngos WHERE id = ${id}::uuid;`;
+    return this.prisma.$queryRaw`SELECT id, name, "registrationNo", type, "contactEmail", "addressLine1", state, district, status, ST_Y(location) AS lat, ST_X(location) AS lng FROM institute_ngos WHERE id = ${id}::uuid;`;
   }
 
   async update(id: string,_updateDto: UpdateInstituteDto) {
