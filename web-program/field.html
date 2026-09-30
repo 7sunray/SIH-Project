@@ -449,6 +449,13 @@
 
             const galleryItems = [...userEvidence, ...evidenceMock];
 
+            // Lightbox viewer for gallery items.
+            const [lightboxItem, setLightboxItem] = useState(null);
+            const removeEvidence = (id) => {
+                if (lightboxItem && lightboxItem.id === id) setLightboxItem(null);
+                setUserEvidence((prev) => prev.filter((x) => x.id !== id));
+            };
+
             // Step 4 State
             const [assessment, setAssessment] = useState(null);
 
@@ -775,10 +782,10 @@
                     {/* Expand grid to 4 columns on large screens to fill space */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
                         {galleryItems.map(item => (
-                            <div key={item.id} className="border border-slate-200 rounded-[1.25rem] overflow-hidden flex flex-col hover:shadow-lg hover:border-primary-300 transition-all bg-white group cursor-pointer">
+                            <div key={item.id} onClick={() => setLightboxItem(item)} className="border border-slate-200 rounded-[1.25rem] overflow-hidden flex flex-col hover:shadow-lg hover:border-primary-300 transition-all bg-white group cursor-pointer">
                                 <div className="h-44 w-full relative overflow-hidden bg-slate-100">
                                     {item.kind === 'video' ? (
-                                        <video src={item.url} className="w-full h-full object-cover" controls preload="metadata" playsInline />
+                                        <video src={item.url} className="w-full h-full object-cover" preload="metadata" playsInline onClick={(e) => e.stopPropagation()} controls />
                                     ) : (
                                         <img src={item.img || item.url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                     )}
@@ -814,6 +821,33 @@
                             Proceed to Report &rarr;
                         </button>
                     </div>
+
+                    {/* Lightbox: click any evidence card to view it large */}
+                    {lightboxItem && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8" onClick={() => setLightboxItem(null)}>
+                            <div className="bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                                <div className="bg-slate-950 flex items-center justify-center max-h-[65vh]">
+                                    {lightboxItem.kind === 'video' ? (
+                                        <video src={lightboxItem.url} className="w-full max-h-[65vh]" controls autoPlay playsInline />
+                                    ) : (
+                                        <img src={lightboxItem.img || lightboxItem.url} alt={lightboxItem.title} className="w-full max-h-[65vh] object-contain" />
+                                    )}
+                                </div>
+                                <div className="p-5 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div>
+                                        <h5 className="font-extrabold text-slate-800 text-lg">{lightboxItem.title}</h5>
+                                        <p className="text-xs font-bold text-slate-500 mt-1">{lightboxItem.time} &nbsp;·&nbsp; {Number(lightboxItem.lat).toFixed(4)}° N, {Number(lightboxItem.lng).toFixed(4)}° E</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {String(lightboxItem.id).startsWith('u') && (
+                                            <button onClick={() => removeEvidence(lightboxItem.id)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-red-600 border border-red-200 hover:bg-red-50 transition-all">Remove</button>
+                                        )}
+                                        <button onClick={() => setLightboxItem(null)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white bg-primary-800 hover:bg-primary-900 transition-all">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
 
