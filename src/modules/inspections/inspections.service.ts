@@ -15,6 +15,13 @@ export class InspectionsService {
     return await this.assigner.assignInspectionRandomly(inspectionId, district, officerId);
   }
 
+  async unassign(inspectionId: string) {
+    return await this.prisma.inspection.update({
+      where: { id: inspectionId },
+      data: { assignedOfficerId: null, status: 'SCHEDULED' },
+    });
+  }
+
   async findAll(query: { status?: string; search?: string }) {
     const where: any = {};
     if (query.status) where.status = query.status;

@@ -13,6 +13,11 @@ export class InspectionsController {
     return this.inspectionsService.assign(body.inspectionId, body.district, body.officerId);
   }
 
+  @Post(':id/unassign')
+  unassign(@Param('id') id: string) {
+    return this.inspectionsService.unassign(id);
+  }
+
   @Get()
   findAll(@Query() query: { status?: string; search?: string }) {
     return this.inspectionsService.findAll(query);
