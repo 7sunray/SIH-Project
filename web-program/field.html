@@ -430,25 +430,23 @@
                             </div>
                         </div>
 
-                        {/* Right Side: Interactive Map Visual */}
-                        <div className="w-full lg:w-7/12 rounded-3xl border border-slate-200 overflow-hidden relative min-h-[380px] shadow-inner">
-                            <div className="absolute top-4 right-4 bg-white text-primary-700 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 flex items-center gap-2 shadow-md cursor-pointer hover:bg-slate-50 transition z-20">
-                                <Icons.MapIcon /> Expand map <Icons.ChevronRight />
-                            </div>
-                            <InteractiveMap
-                                center={[28.6139, 77.209]}
-                                zoom={12}
-                                height="380px"
-                                markers={[
-                                    { lat: 28.6139, lng: 77.2090, color: '#0f766e', popup: '<strong>Rukmini Shelter Home for Women</strong><br/>Delhi Central', label: 'Rukmini Shelter Home for Women' },
-                                    { lat: 28.5355, lng: 77.2410, color: '#64748b', popup: '<strong>Bharat Sevashram</strong><br/>Delhi South', label: 'Bharat Sevashram' },
-                                    { lat: 28.7041, lng: 77.1025, color: '#64748b', popup: '<strong>Nirmal Jyoti Rehab Centre</strong><br/>Delhi North', label: 'Nirmal Jyoti Rehab Centre' },
-                                    { lat: 28.6462, lng: 77.2906, color: '#64748b', popup: '<strong>Asha Deepthi Children\'s Home</strong><br/>Delhi East', label: 'Asha Deepthi Children\'s Home' },
-                                    { lat: 28.6211, lng: 77.0378, color: '#64748b', popup: '<strong>Nambikkai De-addiction Centre</strong><br/>Delhi West', label: 'Nambikkai De-addiction Centre' },
-                                    { lat: 28.5286, lng: 77.2482, color: '#64748b', popup: '<strong>Umeed Observation Home</strong><br/>Delhi South', label: 'Umeed Observation Home' },
-                                    { lat: institute.lat + 0.002, lng: institute.lng - 0.0016, color: '#0ea5e9', popup: '<strong>Your location</strong><br/>GPS verified', label: 'You are here' },
-                                ]}
+                        {/* Right Side: Google Map (satellite, no API key needed) */}
+                        <div className="w-full lg:w-7/12 rounded-3xl border border-slate-200 overflow-hidden relative min-h-[380px] shadow-inner bg-slate-100">
+                            <iframe
+                                title="Institute location on Google Maps"
+                                src={'https://maps.google.com/maps?q=' + institute.lat + ',' + institute.lng + '&t=k&z=17&output=embed'}
+                                className="absolute inset-0 w-full h-full border-0"
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
                             />
+                            <a
+                                href={'https://www.google.com/maps/search/?api=1&query=' + institute.lat + ',' + institute.lng}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="absolute top-4 right-4 bg-white text-primary-700 px-4 py-2.5 rounded-xl text-sm font-bold border border-slate-200 flex items-center gap-2 shadow-md hover:bg-slate-50 transition z-20"
+                            >
+                                <Icons.MapIcon /> Open in Google Maps
+                            </a>
                         </div>
                     </div>
 
