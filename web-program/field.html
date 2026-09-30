@@ -421,6 +421,34 @@
                 { id: 4, title: 'Kitchen & Dining', time: '6 Sep 2026, 06:05 PM', lat: 28.6138, lng: 77.2095, img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=400&q=80' },
             ];
 
+            // User-uploaded evidence (real device files, geotagged live).
+            const [userEvidence, setUserEvidence] = useState([]);
+            const photoInputRef = useRef(null);
+            const videoInputRef = useRef(null);
+
+            const handleEvidenceFiles = (e, kind) => {
+                const files = Array.from((e.target && e.target.files) || []);
+                if (!files.length) return;
+                const now = new Date();
+                const timeStr = now.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+                const baseLat = livePos ? livePos.lat : institute.lat;
+                const baseLng = livePos ? livePos.lng : institute.lng;
+                const items = files.map((f, i) => ({
+                    id: 'u' + Date.now() + '_' + i,
+                    title: (f.name || (kind === 'video' ? 'Video clip' : 'Photo')).replace(/\.[^.]+$/, '').slice(0, 40) || 'Untitled',
+                    time: timeStr,
+                    lat: baseLat,
+                    lng: baseLng,
+                    url: URL.createObjectURL(f),
+                    kind,
+                    liveGps: !!livePos,
+                }));
+                setUserEvidence((prev) => [...items, ...prev]);
+                e.target.value = '';
+            };
+
+            const galleryItems = [...userEvidence, ...evidenceMock];
+
             // Step 4 State
             const [assessment, setAssessment] = useState(null);
 
@@ -724,13 +752,15 @@
                         </div>
                     </div>
 
+                    <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleEvidenceFiles(e, 'photo')} />
+                    <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={(e) => handleEvidenceFiles(e, 'video')} />
                     <div className="flex flex-col md:flex-row gap-5 mb-10">
-                        <button className="flex-1 py-5 border-[2px] border-slate-200 border-dashed rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-primary-400 transition-colors text-slate-700 font-extrabold shadow-sm group">
-                            <span className="text-primary-700 group-hover:scale-110 transition-transform"><Icons.CameraIcon /></span> 
+                        <button onClick={() => photoInputRef.current && photoInputRef.current.click()} className="flex-1 py-5 border-[2px] border-slate-200 border-dashed rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-primary-400 transition-colors text-slate-700 font-extrabold shadow-sm group">
+                            <span className="text-primary-700 group-hover:scale-110 transition-transform"><Icons.CameraIcon /></span>
                             Upload Photo Evidence
                         </button>
-                        <button className="flex-1 py-5 border-[2px] border-slate-200 border-dashed rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-primary-400 transition-colors text-slate-700 font-extrabold shadow-sm group">
-                            <span className="text-primary-700 group-hover:scale-110 transition-transform"><Icons.VideoIcon /></span> 
+                        <button onClick={() => videoInputRef.current && videoInputRef.current.click()} className="flex-1 py-5 border-[2px] border-slate-200 border-dashed rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-primary-400 transition-colors text-slate-700 font-extrabold shadow-sm group">
+                            <span className="text-primary-700 group-hover:scale-110 transition-transform"><Icons.VideoIcon /></span>
                             Upload Video Clip
                         </button>
                     </div>
@@ -738,19 +768,23 @@
                     <div className="flex items-center justify-between mb-6 pb-3">
                         <h4 className="font-extrabold text-slate-800 text-lg">Evidence Gallery</h4>
                         <div className="bg-emerald-50 text-primary-800 px-4 py-2 rounded-xl text-xs font-bold border border-emerald-100 flex items-center gap-2 shadow-sm">
-                            <Icons.CheckCircleSolid /> {evidenceMock.length} files attached
+                            <Icons.CheckCircleSolid /> {galleryItems.length} files attached
                         </div>
                     </div>
 
                     {/* Expand grid to 4 columns on large screens to fill space */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                        {evidenceMock.map(item => (
+                        {galleryItems.map(item => (
                             <div key={item.id} className="border border-slate-200 rounded-[1.25rem] overflow-hidden flex flex-col hover:shadow-lg hover:border-primary-300 transition-all bg-white group cursor-pointer">
-                                <div className="h-44 w-full relative overflow-hidden">
-                                    <img src={item.img} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                <div className="h-44 w-full relative overflow-hidden bg-slate-100">
+                                    {item.kind === 'video' ? (
+                                        <video src={item.url} className="w-full h-full object-cover" controls preload="metadata" playsInline />
+                                    ) : (
+                                        <img src={item.img || item.url} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                    )}
                                     <div className="absolute top-3 left-3 flex gap-2">
                                         <span className="bg-white/90 backdrop-blur-sm text-primary-800 px-2 py-1 rounded-md text-[0.65rem] font-bold shadow-sm flex items-center gap-1">
-                                            <Icons.MapPin /> Geotagged
+                                            <Icons.MapPin /> {item.liveGps === false ? 'Tagged' : 'Geotagged'}
                                         </span>
                                     </div>
                                 </div>
@@ -821,7 +855,7 @@
                                 <div className="w-full h-px bg-slate-100"></div>
                                 <div className="flex justify-between items-center text-[0.95rem]">
                                     <span className="text-slate-500 font-bold flex items-center gap-2"><Icons.CameraIcon /> Evidence Files</span>
-                                    <span className="font-extrabold text-slate-800">{evidenceMock.length} Attached</span>
+                                    <span className="font-extrabold text-slate-800">{galleryItems.length} Attached</span>
                                 </div>
                                 <div className="w-full h-px bg-slate-100"></div>
                                 <div className="flex justify-between items-center text-[0.95rem]">
