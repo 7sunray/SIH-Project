@@ -124,6 +124,14 @@
             100% { width: 200px; height: 200px; opacity: 0; }
         }
     </style>
+    <style>
+        /* Mobile readability: bold text renders slightly smaller; desktop untouched. */
+        @media (max-width: 1023.5px) {
+            html body .font-black { font-size: 92%; }
+            html body .font-extrabold { font-size: 93%; }
+            html body .font-bold { font-size: 94%; }
+        }
+    </style>
 </head>
 <body>
     <script>

@@ -46,6 +46,14 @@
         }
         .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
+    <style>
+        /* Mobile readability: bold text renders slightly smaller; desktop untouched. */
+        @media (max-width: 1023.5px) {
+            html body .font-black { font-size: 92%; }
+            html body .font-extrabold { font-size: 93%; }
+            html body .font-bold { font-size: 94%; }
+        }
+    </style>
 </head>
 <body>
     <div class="min-h-screen flex flex-col">
