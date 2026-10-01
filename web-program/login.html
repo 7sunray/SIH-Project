@@ -89,7 +89,7 @@
                     <h3 class="text-xl font-extrabold text-slate-800 mb-1">You're signed in</h3>
                     <p class="text-sm font-semibold text-slate-500 mb-6" id="session-email"></p>
                     <div style="display:flex;flex-direction:column;gap:12px;">
-                        <button onclick="goDashboard()" class="bg-primary-800 hover:bg-primary-900 text-white font-extrabold py-3.5 px-6 rounded-xl shadow-md transition-all">Continue to Dashboard</button>
+                        <button id="continue-btn" onclick="goNext()" class="bg-primary-800 hover:bg-primary-900 text-white font-extrabold py-3.5 px-6 rounded-xl shadow-md transition-all">Continue</button>
                         <button onclick="signOut()" class="text-sm font-extrabold text-slate-500 hover:text-red-600 transition-all">Use a different account</button>
                     </div>
                 </div>
@@ -100,6 +100,16 @@
 
     <script>
         var TOKEN_KEY = 'gw_token';
+        var EMAIL_KEY = 'gw_email';
+        // Page to return to after sign-in (?next=... from the auth gate).
+        var NEXT = 'dashboard.html';
+        try {
+            var m = /[?&]next=([^&]+)/.exec(location.search);
+            if (m) {
+                var n = decodeURIComponent(m[1]);
+                if (/^[a-z_]+\.html$/.test(n)) NEXT = n;
+            }
+        } catch (e) {}
 
         function showError(msg) {
             var el = document.getElementById('login-error');
@@ -107,12 +117,16 @@
             el.classList.remove('hidden');
         }
 
+        function goNext() {
+            window.location.href = NEXT;
+        }
+
         function goDashboard() {
-            window.location.href = 'dashboard.html';
+            goNext();
         }
 
         function signOut() {
-            try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+            try { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(EMAIL_KEY); } catch (e) {}
             document.getElementById('session-view').classList.add('hidden');
             document.getElementById('login-view').classList.remove('hidden');
         }
@@ -120,9 +134,12 @@
         function showSession(email) {
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('session-view').classList.remove('hidden');
-            document.getElementById('session-email').textContent = email || '';
-            var initials = (email || 'IN').slice(0, 2).toUpperCase();
+            var shown = email;
+            if (!shown) { try { shown = localStorage.getItem(EMAIL_KEY) || ''; } catch (e) {} }
+            document.getElementById('session-email').textContent = shown;
+            var initials = (shown || 'IN').slice(0, 2).toUpperCase();
             document.getElementById('session-avatar').textContent = initials;
+            document.getElementById('continue-btn').textContent = 'Continue';
         }
 
         // If a token exists, verify it before deciding what to show.
@@ -157,9 +174,10 @@
                 var data = await res.json();
                 try {
                     localStorage.setItem(TOKEN_KEY, data.accessToken);
+                    localStorage.setItem(EMAIL_KEY, email);
                     if (data.refreshToken) localStorage.setItem('gw_refresh', data.refreshToken);
                 } catch (err) {}
-                goDashboard();
+                goNext();
             } catch (err) {
                 showError(err.message || 'Login failed.');
                 btn.disabled = false;

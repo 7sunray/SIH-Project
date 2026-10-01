@@ -127,10 +127,19 @@
 </head>
 <body>
     <script>
-        // Auth gate: no session token -> login page (runs before the app mounts).
+        // Auth gate (runs before the app mounts): every refresh lands on the
+        // login page; fresh opens land there when signed out. In-app link
+        // clicks with a valid session pass straight through.
         try {
-            if (!localStorage.getItem('gw_token') && !/login\.html$/.test(location.pathname)) {
-                location.href = 'login.html';
+            if (!/login\.html$/.test(location.pathname)) {
+                var navType = '';
+                try { navType = (performance.getEntriesByType('navigation')[0] || {}).type || ''; } catch (e) {}
+                var tok = null;
+                try { tok = localStorage.getItem('gw_token'); } catch (e) {}
+                if (navType === 'reload' || !tok) {
+                    var next = location.pathname.split('/').pop() || 'dashboard.html';
+                    location.href = 'login.html?next=' + encodeURIComponent(next);
+                }
             }
         } catch (e) {}
     </script>
