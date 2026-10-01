@@ -313,6 +313,7 @@
                             color: sev.color,
                             title: a.title || a.anomalyType,
                             loc: inst.name || p.title || '—',
+                            phone: inst.contactPhone || '',
                             desc: a.description || '',
                             conf: conf,
                             confText: conf == null ? 'n/a' : conf + '%',
@@ -548,9 +549,14 @@
                                                     <div className="text-slate-300 group-hover:text-primary-700 transition cursor-pointer hidden sm:block"><Icons.ChevronRight /></div>
                                                 </div>
                                                 
-                                                <p className="text-[0.85rem] text-slate-500 font-bold flex items-center gap-1.5 mb-4">
+                                                <p className="text-[0.85rem] text-slate-500 font-bold flex items-center gap-1.5 mb-2">
                                                     <span className="text-primary-700"><Icons.MapPin /></span> {feed.loc}
                                                 </p>
+                                                {feed.phone && (
+                                                    <p className="text-[0.85rem] text-slate-500 font-bold flex items-center gap-1.5 mb-4">
+                                                        <span className="text-primary-700"><Icons.Phone /></span> Registered: {feed.phone}
+                                                    </p>
+                                                )}
 
                                                 <p className="text-sm text-slate-600 font-semibold leading-relaxed mb-8 max-w-3xl">
                                                     {feed.desc}
@@ -569,9 +575,15 @@
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                                                    <button onClick={handleVerifyCall} className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-primary-800 bg-white border-2 border-emerald-100 hover:bg-emerald-50 transition shadow-sm flex items-center justify-center gap-2">
-                                                        <Icons.Phone /> Verify by call
-                                                    </button>
+                                                    {feed.phone ? (
+                                                        <a href={'tel:' + feed.phone} title={'Call registered number ' + feed.phone} className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-primary-800 bg-white border-2 border-emerald-100 hover:bg-emerald-50 transition shadow-sm flex items-center justify-center gap-2">
+                                                            <Icons.Phone /> Verify by call
+                                                        </a>
+                                                    ) : (
+                                                        <button onClick={handleVerifyCall} title="No registered number — open video verification instead" className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-primary-800 bg-white border-2 border-emerald-100 hover:bg-emerald-50 transition shadow-sm flex items-center justify-center gap-2">
+                                                            <Icons.Phone /> Verify by call
+                                                        </button>
+                                                    )}
                                                     {(feed.status === 'DETECTED' || feed.status === 'INVESTIGATING') ? (
                                                         <button disabled={!!busy[feed.id]} onClick={() => handleEscalate(feed)} className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-white bg-primary-800 border-2 border-primary-800 hover:bg-primary-900 disabled:opacity-60 transition shadow-md flex items-center justify-center gap-2 whitespace-nowrap">
                                                             <Icons.ShieldCheck /> {busy[feed.id] ? '…' : 'Escalate to inspection'}
