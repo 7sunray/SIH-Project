@@ -349,6 +349,47 @@
             );
         }
 
+        // ============ ACCOUNT MENU (avatar dropdown) ============
+        function AccountMenu() {
+            const [open, setOpen] = useState(false);
+            const [email, setEmail] = useState('');
+            useEffect(() => {
+                let em = '';
+                try { em = localStorage.getItem('gw_email') || ''; } catch (e) {}
+                if (!em) {
+                    try {
+                        const t = localStorage.getItem('gw_token') || '';
+                        em = JSON.parse(atob(t.split('.')[1])).email || '';
+                    } catch (e) {}
+                }
+                setEmail(em);
+            }, []);
+            const initials = (email || 'IN').slice(0, 2).toUpperCase();
+            const signOut = () => {
+                try { localStorage.removeItem('gw_token'); localStorage.removeItem('gw_email'); localStorage.removeItem('gw_refresh'); } catch (e) {}
+                window.location.href = 'login.html';
+            };
+            return (
+                <div className="relative">
+                    <button onClick={() => setOpen((o) => !o)} aria-label="Account menu" className="w-11 h-11 rounded-full bg-white text-primary-800 font-black flex items-center justify-center text-sm tracking-tight shadow-xl border-[3px] border-emerald-100 cursor-pointer hover:scale-105 transition-transform">
+                        {initials}
+                    </button>
+                    {open && (
+                        <React.Fragment>
+                            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}></div>
+                            <div className="absolute right-0 top-full mt-2 z-50 w-64 bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+                                <div className="px-5 py-4 border-b border-slate-100">
+                                    <p className="text-[0.65rem] font-extrabold text-slate-400 uppercase tracking-widest mb-1">Signed in as</p>
+                                    <p className="text-sm font-extrabold text-slate-800 break-all">{email || 'Officer'}</p>
+                                </div>
+                                <button onClick={signOut} className="w-full text-left px-5 py-3.5 text-sm font-extrabold text-red-600 hover:bg-red-50 transition-colors">Sign out</button>
+                            </div>
+                        </React.Fragment>
+                    )}
+                </div>
+            );
+        }
+
         // ============ PAGE 1: DASHBOARD ============
         function Dashboard({ onNavigate }) {
             const chartRef = useRef(null);
@@ -523,7 +564,7 @@
                                 <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition backdrop-blur-md border border-white/20 shadow-sm" onClick={() => onNavigate('dashboard')}><Icons.ArrowLeft /></button>
                                 <div className="text-emerald-100/70 tracking-wide uppercase text-xs cursor-pointer hover:text-white transition" onClick={() => onNavigate('dashboard')}>Workspace &nbsp;&gt;&nbsp; <span className="text-white font-bold">Institutes Directory</span></div>
                             </div>
-                            <div className="w-11 h-11 rounded-full bg-white text-primary-800 font-black flex items-center justify-center text-sm tracking-tight shadow-xl border-[3px] border-emerald-100 cursor-pointer hover:scale-105 transition-transform">US</div>
+                            <AccountMenu />
                         </div>
 
                         <div className="max-w-7xl mx-auto relative z-10 flex justify-between items-center">
@@ -652,7 +693,7 @@
                                 <button className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition backdrop-blur-md border border-white/20 shadow-sm" onClick={() => onNavigate('dashboard')}><Icons.ArrowLeft /></button>
                                 <div className="text-emerald-100/70 tracking-wide uppercase text-xs cursor-pointer hover:text-white transition" onClick={() => onNavigate('dashboard')}>Workspace &nbsp;&gt;&nbsp; <span className="text-white font-bold">AI Anomaly Alerts</span></div>
                             </div>
-                            <div className="w-11 h-11 rounded-full bg-white text-primary-800 font-black flex items-center justify-center text-sm tracking-tight shadow-xl border-[3px] border-emerald-100 cursor-pointer hover:scale-105 transition-transform">US</div>
+                            <AccountMenu />
                         </div>
                         <div className="max-w-7xl mx-auto relative z-10 flex justify-between items-end">
                             <div><h2 className="text-4xl lg:text-5xl font-black mb-3 tracking-tight text-white drop-shadow-sm">AI Anomaly Alerts</h2><p className="text-emerald-100/90 text-lg font-medium leading-relaxed">Automatically flagged irregularities across active CCTV feeds.</p></div>
