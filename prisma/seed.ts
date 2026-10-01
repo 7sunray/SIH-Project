@@ -217,6 +217,84 @@ async function main() {
       '99999999-9999-4999-8999-999999999999'::uuid, NOW(), NOW(), NOW())
     ON CONFLICT (id) DO NOTHING;
   `;
+
+  // Asha Deepthi institute + project (so every seeded alert links to a real place).
+  await prisma.$executeRaw`
+    INSERT INTO institute_ngos (id, name, "registrationNo", type, "contactEmail", "contactPhone", "addressLine1", state, district, "pinCode", location, status, "createdAt", "updatedAt")
+    VALUES ('10101010-1010-4101-8101-101010101010', 'Asha Deepthi Children''s Home', 'MSJE/DL/00234', 'Child Welfare',
+      'contact@ashadeepthi.in', '+911140004004', 'Preet Vihar, New Delhi, 110092', 'Delhi', 'East Delhi', '110092',
+      ST_SetSRID(ST_MakePoint(77.2695, 28.6381), 4326), 'ACTIVE', NOW(), NOW())
+    ON CONFLICT (id) DO NOTHING;
+  `;
+  await prisma.$executeRaw`
+    INSERT INTO projects (id, title, "schemeCode", "instituteNgoId", status, location, "beneficiaryCount", "createdAt", "updatedAt")
+    VALUES ('20202020-2020-4202-8202-202020202020', 'Asha Deepthi Care Program 2026', 'SCH/DL/2026/04',
+      '10101010-1010-4101-8101-101010101010'::uuid, 'IN_PROGRESS',
+      ST_SetSRID(ST_MakePoint(77.2695, 28.6381), 4326), 112, NOW(), NOW())
+    ON CONFLICT (id) DO NOTHING;
+  `;
+
+  // The five original alert cards, as real rows (escalation persists).
+  const EXTRA_ANOMALIES = [
+    {
+      id: 'f1111111-1111-4111-8111-111111111111',
+      type: 'CCTV_FEED_INTERRUPTED',
+      severity: 'CRITICAL',
+      title: 'CCTV feed offline for 6+ hours',
+      description: 'Camera-03-DORM has reported no signal since 03:12 IST. No maintenance ticket was raised by the institute administrator.',
+      source: 'CCTV',
+      projectId: '99999999-9999-4999-8999-999999999999',
+      confidenceScore: 0.96,
+    },
+    {
+      id: 'f2222222-2222-4222-8222-222222222222',
+      type: 'BENEFICIARY_COUNT_MISMATCH',
+      severity: 'CRITICAL',
+      title: 'Beneficiary headcount mismatch',
+      description: 'CCTV person-count (31) is significantly lower than the declared attendance register (42) for three consecutive days.',
+      source: 'AI_VISION',
+      projectId: '77777777-7777-4777-8777-777777777777',
+      confidenceScore: 0.91,
+    },
+    {
+      id: 'f3333333-3333-4333-8333-333333333333',
+      type: 'OTHER',
+      severity: 'HIGH',
+      title: 'Unregistered visitor after hours',
+      description: 'Entrance camera detected movement at 01:40 IST with no matching entry in the visitor log.',
+      source: 'CCTV',
+      projectId: '88888888-8888-4888-8888-888888888888',
+      confidenceScore: 0.87,
+    },
+    {
+      id: 'f4444444-4444-4444-8444-444444444444',
+      type: 'OTHER',
+      severity: 'HIGH',
+      title: 'Staff attendance below sanctioned ratio',
+      description: 'Only 6 of 10 sanctioned staff have badged in this week, falling below the mandated caregiver ratio.',
+      source: 'AI_VISION',
+      projectId: '99999999-9999-4999-8999-999999999999',
+      confidenceScore: 0.74,
+    },
+    {
+      id: 'f5555555-5555-4555-8555-555555555555',
+      type: 'GEO_FENCE_VIOLATION',
+      severity: 'MEDIUM',
+      title: 'Unusual movement detected',
+      description: 'AI detected unusual movement in the restricted zone near the back gate.',
+      source: 'AI_VISION',
+      projectId: '20202020-2020-4202-8202-202020202020',
+      confidenceScore: 0.68,
+    },
+  ];
+  for (const a of EXTRA_ANOMALIES) {
+    await prisma.$executeRaw`
+      INSERT INTO anomaly_alerts (id, "anomalyType", severity, status, title, description, source, "projectId", "confidenceScore", "detectedAt", "createdAt", "updatedAt")
+      VALUES (${a.id}::uuid, ${a.type}, ${a.severity}, 'DETECTED', ${a.title}, ${a.description}, ${a.source},
+        ${a.projectId}::uuid, ${a.confidenceScore}, NOW(), NOW(), NOW())
+      ON CONFLICT (id) DO NOTHING;
+    `;
+  }
 }
 
 main()
