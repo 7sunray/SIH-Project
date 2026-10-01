@@ -229,49 +229,152 @@
 
         // ============ PAGE: AI ANOMALY ALERTS ============
         function AlertsPage({ onNavigate }) {
-            const [filter, setFilter] = useState('All Alerts (7)');
-            const filters = [
-                { id: 'All Alerts (7)', color: 'bg-primary-800 text-white border-primary-800' },
-                { id: 'Critical (2)', color: 'bg-white text-slate-600 border-slate-200', dot: 'bg-red-500' },
-                { id: 'High (3)', color: 'bg-white text-slate-600 border-slate-200', dot: 'bg-amber-500' },
-                { id: 'Medium (2)', color: 'bg-white text-slate-600 border-slate-200', dot: 'bg-yellow-400' }
-            ];
+            const [filter, setFilter] = useState('All');
+            const [token] = useState(() => { try { return localStorage.getItem('gw_token') || ''; } catch (e) { return ''; } });
+            const [alerts, setAlerts] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [loadError, setLoadError] = useState('');
+            const [search, setSearch] = useState('');
+            const [busy, setBusy] = useState({});
+            const [actionError, setActionError] = useState('');
 
-            // Rich data extracted from the screenshot
-            const mockFeeds = [
-                { 
-                    id: 'CAM-01', type: 'Critical', title: 'CCTV feed offline for 6+ hours', loc: 'Nirmal Jyoti Disability Rehab Centre', 
-                    desc: 'Camera-03-DORM has reported no signal since 03:12 IST. No maintenance ticket was raised by the institute administrator.', 
-                    conf: 96, time: '05:37 PM', date: '6 Sept 2026', color: 'red',
-                    img: 'https://images.unsplash.com/photo-1541888046425-d81bb19240f5?auto=format&fit=crop&w=600&q=80' 
-                },
-                { 
-                    id: 'CAM-02', type: 'Critical', title: 'Beneficiary headcount mismatch', loc: 'Rukmini Shelter Home for Women', 
-                    desc: 'CCTV person-count (31) is significantly lower than the declared attendance register (42) for three consecutive days.', 
-                    conf: 91, time: '03:48 PM', date: '6 Sept 2026', color: 'red',
-                    img: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80' 
-                },
-                { 
-                    id: 'CAM-03', type: 'High', title: 'Unregistered visitor after hours', loc: 'Nambikkai De-addiction Centre', 
-                    desc: 'Entrance camera detected movement at 01:40 IST with no matching entry in the visitor log.', 
-                    conf: 87, time: '01:40 PM', date: '6 Sept 2026', color: 'amber',
-                    img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80' 
-                },
-                { 
-                    id: 'CAM-04', type: 'High', title: 'Staff attendance below sanctioned ratio', loc: 'Nirmal Jyoti Disability Rehab Centre', 
-                    desc: 'Only 6 of 10 sanctioned staff have badged in this week, falling below the mandated caregiver ratio.', 
-                    conf: 74, time: '11:22 AM', date: '5 Sept 2026', color: 'amber',
-                    img: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80' 
-                },
-                { 
-                    id: 'CAM-05', type: 'Medium', title: 'Unusual movement detected', loc: 'Asha Deepthi Children\'s Home', 
-                    desc: 'AI detected unusual movement in the restricted zone near the back gate.', 
-                    conf: 68, time: '09:15 AM', date: '5 Sept 2026', color: 'yellow',
-                    img: 'https://images.unsplash.com/photo-1584824486509-112e4181f1b6?auto=format&fit=crop&w=600&q=80' 
+            const TYPE_IMG = {
+                CCTV_FEED_INTERRUPTED: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
+                BENEFICIARY_COUNT_MISMATCH: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80',
+                DEFAULT: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80',
+            };
+            const SEV = {
+                CRITICAL: { label: 'Critical', color: 'red' },
+                HIGH: { label: 'High', color: 'amber' },
+                MEDIUM: { label: 'Medium', color: 'yellow' },
+                LOW: { label: 'Low', color: 'yellow' },
+            };
+
+            const asArray = (payload) => {
+                if (Array.isArray(payload)) return payload;
+                if (payload && Array.isArray(payload.data)) return payload.data;
+                return [];
+            };
+
+            const apiFetch = async (path, options) => {
+                const res = await fetch(path, {
+                    ...(options || {}),
+                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...((options && options.headers) || {}) },
+                });
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(text.slice(0, 200) || ('Request failed: ' + res.status));
                 }
+                return res.json();
+            };
+
+            const fmtDate = (iso) => {
+                try {
+                    const d = new Date(iso);
+                    if (isNaN(d.getTime())) return { date: '—', time: '' };
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    let h = d.getHours();
+                    const ap = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    return {
+                        date: String(d.getDate()).padStart(2, '0') + ' ' + months[d.getMonth()] + ' ' + d.getFullYear(),
+                        time: String(h).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + ap,
+                    };
+                } catch (e) {
+                    return { date: '—', time: '' };
+                }
+            };
+
+            const loadAll = async () => {
+                if (!token) return;
+                setLoading(true);
+                setLoadError('');
+                try {
+                    const [aRes, pRes, iRes] = await Promise.all([
+                        apiFetch('/anomalies?limit=100'),
+                        apiFetch('/projects?limit=100'),
+                        apiFetch('/institutes?limit=100'),
+                    ]);
+                    const anoms = asArray(aRes);
+                    const projById = {};
+                    asArray(pRes).forEach((p) => { projById[p.id] = p; });
+                    const instById = {};
+                    asArray(iRes).forEach((i) => { instById[i.id] = i; });
+                    const mapped = anoms.map((a) => {
+                        const p = projById[a.projectId] || {};
+                        const inst = instById[p.instituteNgoId] || {};
+                        const sev = SEV[a.severity] || SEV.MEDIUM;
+                        const conf = a.confidenceScore != null ? Math.round(Number(a.confidenceScore) * 100) : null;
+                        const dt = a.detectedAt ? fmtDate(a.detectedAt) : { date: '—', time: '' };
+                        return {
+                            id: a.id,
+                            shortId: 'ALERT-' + String(a.id).slice(0, 4).toUpperCase(),
+                            type: sev.label,
+                            color: sev.color,
+                            title: a.title || a.anomalyType,
+                            loc: inst.name || p.title || '—',
+                            desc: a.description || '',
+                            conf: conf,
+                            confText: conf == null ? 'n/a' : conf + '%',
+                            date: dt.date,
+                            time: dt.time,
+                            status: a.status || 'DETECTED',
+                            img: TYPE_IMG[a.anomalyType] || TYPE_IMG.DEFAULT,
+                        };
+                    });
+                    // Open alerts first, then by severity.
+                    const rank = { Critical: 0, High: 1, Medium: 2, Low: 3 };
+                    const isOpen = (s) => s === 'DETECTED' || s === 'INVESTIGATING';
+                    mapped.sort((x, y) => ((isOpen(y.status) ? 0 : 1) - (isOpen(x.status) ? 0 : 1)) || ((rank[x.type] || 9) - (rank[y.type] || 9)));
+                    setAlerts(mapped);
+                } catch (err) {
+                    setLoadError(err.message || 'Failed to load alerts.');
+                }
+                setLoading(false);
+            };
+
+            useEffect(() => { if (token) loadAll(); }, [token]);
+
+            const myUserId = () => {
+                try { return JSON.parse(atob(token.split('.')[1])).sub || null; } catch (e) { return null; }
+            };
+
+            const handleVerifyCall = () => {
+                window.location.href = 'video_verification.html';
+            };
+
+            const handleEscalate = async (feed) => {
+                setBusy((prev) => ({ ...prev, [feed.id]: true }));
+                setActionError('');
+                try {
+                    const uid = myUserId();
+                    if (uid) {
+                        try { await apiFetch('/anomalies/' + feed.id + '/assign', { method: 'PATCH', body: JSON.stringify({ adminId: uid }) }); } catch (e) {}
+                    }
+                    await apiFetch('/anomalies/' + feed.id + '/status', { method: 'PATCH', body: JSON.stringify({ status: 'ESCALATED' }) });
+                    await loadAll();
+                } catch (err) {
+                    setActionError('Escalation failed: ' + err.message);
+                }
+                setBusy((prev) => ({ ...prev, [feed.id]: false }));
+            };
+
+            const counts = { All: alerts.length, Critical: 0, High: 0, Medium: 0 };
+            alerts.forEach((a) => {
+                if (a.type === 'Critical') counts.Critical++;
+                else if (a.type === 'High') counts.High++;
+                else counts.Medium++;
+            });
+            const filters = [
+                { id: 'All', label: 'All Alerts (' + counts.All + ')' },
+                { id: 'Critical', label: 'Critical (' + counts.Critical + ')', dot: 'bg-red-500' },
+                { id: 'High', label: 'High (' + counts.High + ')', dot: 'bg-amber-500' },
+                { id: 'Medium', label: 'Medium (' + counts.Medium + ')', dot: 'bg-yellow-400' }
             ];
 
-            const filteredFeeds = filter === 'All Alerts (7)' ? mockFeeds : mockFeeds.filter(f => filter.includes(f.type));
+            const q = search.trim().toLowerCase();
+            const baseFeeds = filter === 'All' ? alerts : alerts.filter((f) => f.type === filter);
+            const filteredFeeds = q ? baseFeeds.filter((f) => (f.title + ' ' + f.loc + ' ' + f.type).toLowerCase().includes(q)) : baseFeeds;
 
             const getColorClasses = (color) => {
                 if(color === 'red') return { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', fill: 'bg-red-500', icon: 'text-red-500' };
@@ -323,6 +426,8 @@
                                 <input 
                                     type="text" 
                                     placeholder="Search by location, event, or time..." 
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
                                     className="w-full bg-transparent text-[0.95rem] text-slate-800 font-bold outline-none placeholder:font-semibold placeholder:text-slate-400"
                                 />
                             </div>
@@ -345,7 +450,7 @@
                                         }`}
                                     >
                                         {f.dot && !isActive && <span className={`w-2 h-2 rounded-full ${f.dot}`}></span>}
-                                        {f.id}
+                                        {f.label}
                                     </button>
                                 );
                             })}
@@ -364,22 +469,22 @@
                             </div>
                             <div className="flex flex-wrap items-center gap-8 md:gap-12 w-full md:w-auto pt-4 md:pt-0">
                                 <div className="text-center">
-                                    <p className="text-2xl font-black text-primary-900 mb-1 flex items-center gap-2 justify-center"><span className="text-primary-600"><Icons.Shield /></span> 7</p>
+                                    <p className="text-2xl font-black text-primary-900 mb-1 flex items-center gap-2 justify-center"><span className="text-primary-600"><Icons.Shield /></span> {counts.All}</p>
                                     <p className="text-[0.65rem] text-primary-700/60 font-black uppercase tracking-widest">Total Alerts</p>
                                 </div>
                                 <div className="w-px h-10 bg-emerald-200/50 hidden md:block"></div>
                                 <div className="text-center">
-                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-red-500"><Icons.TriangleAlert /></span> 2</p>
+                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-red-500"><Icons.TriangleAlert /></span> {counts.Critical}</p>
                                     <p className="text-[0.65rem] text-slate-400 font-black uppercase tracking-widest">Critical</p>
                                 </div>
                                 <div className="w-px h-10 bg-slate-200/50 hidden md:block"></div>
                                 <div className="text-center">
-                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-amber-500"><Icons.TriangleAlert /></span> 3</p>
+                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-amber-500"><Icons.TriangleAlert /></span> {counts.High}</p>
                                     <p className="text-[0.65rem] text-slate-400 font-black uppercase tracking-widest">High</p>
                                 </div>
                                 <div className="w-px h-10 bg-slate-200/50 hidden md:block"></div>
                                 <div className="text-center">
-                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-yellow-400"><Icons.TriangleAlert /></span> 2</p>
+                                    <p className="text-2xl font-black text-slate-800 mb-1 flex items-center gap-2 justify-center"><span className="text-yellow-400"><Icons.TriangleAlert /></span> {counts.Medium}</p>
                                     <p className="text-[0.65rem] text-slate-400 font-black uppercase tracking-widest">Medium</p>
                                 </div>
                             </div>
@@ -387,7 +492,28 @@
                         </div>
 
                         {/* List of Alert Cards (Wide Desktop Format) */}
+                        {!token && (
+                            <div className="bg-white rounded-[1.5rem] p-8 custom-shadow border border-slate-100 text-center">
+                                <p className="font-extrabold text-slate-800 mb-2">Sign in to view live alerts</p>
+                                <button onClick={() => window.location.href = 'login.html'} className="mt-2 bg-primary-800 hover:bg-primary-900 text-white text-sm font-extrabold px-6 py-3 rounded-xl shadow-md transition-all">Go to Sign in</button>
+                            </div>
+                        )}
+                        {token && loading && (
+                            <div className="bg-white rounded-[1.5rem] p-8 custom-shadow border border-slate-100 text-center font-bold text-slate-500">Loading live alerts…</div>
+                        )}
+                        {token && !loading && loadError && (
+                            <div className="bg-white rounded-[1.5rem] p-8 custom-shadow border border-slate-100 text-center">
+                                <p className="font-bold text-red-600 mb-4">{loadError}</p>
+                                <button onClick={loadAll} className="bg-white px-6 py-3 rounded-xl border border-slate-200 shadow-sm text-primary-700 font-extrabold hover:bg-slate-50 transition-all">Retry</button>
+                            </div>
+                        )}
+                        {actionError && (
+                            <div className="bg-red-50 rounded-[1.5rem] p-4 custom-shadow border border-red-200 text-center font-bold text-red-600 text-sm">{actionError}</div>
+                        )}
                         <div className="flex flex-col gap-6">
+                            {token && !loading && !loadError && filteredFeeds.length === 0 && (
+                                <div className="bg-white rounded-[1.5rem] p-8 custom-shadow border border-slate-100 text-center font-bold text-slate-500">No alerts found.</div>
+                            )}
                             {filteredFeeds.map((feed, idx) => {
                                 const colors = getColorClasses(feed.color);
                                 return (
@@ -400,7 +526,7 @@
                                                 <div className="live-pulse w-2 h-2 rounded-full bg-white"></div> LIVE
                                             </div>
                                             <div className="absolute top-4 right-4 bg-black/50 text-white p-2.5 rounded-xl backdrop-blur-md cursor-pointer hover:bg-black/70 transition z-10"><Icons.Expand /></div>
-                                            <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3.5 py-2 rounded-xl backdrop-blur-md flex items-center gap-2.5 text-xs font-bold z-10"><Icons.CameraIcon /> {feed.id}</div>
+                                            <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3.5 py-2 rounded-xl backdrop-blur-md flex items-center gap-2.5 text-xs font-bold z-10"><Icons.CameraIcon /> {feed.shortId}</div>
                                             <div className="absolute bottom-4 right-4 bg-black/45 text-white px-2.5 py-1.5 rounded-lg backdrop-blur-md text-[0.6rem] font-black tracking-widest uppercase z-10">AI monitored</div>
                                         </div>
 
@@ -436,19 +562,25 @@
                                                 <div className="flex-1 w-full max-w-sm">
                                                     <div className="flex justify-between items-center text-[0.7rem] font-black text-slate-400 uppercase tracking-widest mb-2">
                                                         <span className="flex items-center gap-1.5"><Icons.Brain /> AI Confidence</span>
-                                                        <span className={colors.text}>{feed.conf}%</span>
+                                                        <span className={colors.text}>{feed.confText}</span>
                                                     </div>
                                                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-                                                        <div className={`h-full rounded-full ${colors.fill} transition-all duration-1000`} style={{width: `${feed.conf}%`}}></div>
+                                                        <div className={`h-full rounded-full ${colors.fill} transition-all duration-1000`} style={{width: `${feed.conf || 0}%`}}></div>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3 w-full sm:w-auto">
-                                                    <button className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-primary-800 bg-white border-2 border-emerald-100 hover:bg-emerald-50 transition shadow-sm flex items-center justify-center gap-2">
+                                                    <button onClick={handleVerifyCall} className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-primary-800 bg-white border-2 border-emerald-100 hover:bg-emerald-50 transition shadow-sm flex items-center justify-center gap-2">
                                                         <Icons.Phone /> Verify by call
                                                     </button>
-                                                    <button className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-white bg-primary-800 border-2 border-primary-800 hover:bg-primary-900 transition shadow-md flex items-center justify-center gap-2 whitespace-nowrap">
-                                                        <Icons.ShieldCheck /> Escalate to inspection
-                                                    </button>
+                                                    {(feed.status === 'DETECTED' || feed.status === 'INVESTIGATING') ? (
+                                                        <button disabled={!!busy[feed.id]} onClick={() => handleEscalate(feed)} className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-white bg-primary-800 border-2 border-primary-800 hover:bg-primary-900 disabled:opacity-60 transition shadow-md flex items-center justify-center gap-2 whitespace-nowrap">
+                                                            <Icons.ShieldCheck /> {busy[feed.id] ? '…' : 'Escalate to inspection'}
+                                                        </button>
+                                                    ) : (
+                                                        <span className="flex-1 sm:flex-none px-6 py-3 rounded-xl text-sm font-extrabold text-emerald-800 bg-emerald-100 border-2 border-emerald-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                                                            <Icons.ShieldCheck /> {feed.status}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
