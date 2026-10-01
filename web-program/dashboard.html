@@ -444,6 +444,18 @@
                 ? mockNearbyList.filter((item) => `${item.name} ${item.city} ${item.dist}`.toLowerCase().includes(normalizedSearchQuery))
                 : [];
 
+            // Filter pills drive the Nearby Facilities list.
+            const kmOf = (dist) => {
+                const m = /([\d.]+)\s*km/.exec(dist || '');
+                return m ? parseFloat(m[1]) : 999;
+            };
+            const filteredNearby = mockNearbyList.filter((item) => {
+                if (filter === 'Compliance') return item.status === 'Compliant';
+                if (filter === 'Urgent Action') return item.status === 'Urgent';
+                if (filter === 'Geo-tagged') return kmOf(item.dist) <= 5;
+                return true;
+            });
+
             useEffect(() => {
                 const ctx = chartRef.current?.getContext('2d');
                 if (ctx) {
@@ -684,7 +696,7 @@
                                 </div>
                                 
                                 <div className="flex flex-col gap-4 flex-1 overflow-y-auto pr-2 thin-scrollbar max-h-[850px]">
-                                    {mockNearbyList.map(item => (
+                                    {filteredNearby.map(item => (
                                         <div key={item.id} onClick={onNavigateInspection} className="bg-white rounded-2xl p-5 border border-slate-100 flex flex-col gap-4 hover:-translate-y-1 hover:shadow-lg hover:border-primary-200 transition-all cursor-pointer group">
                                             <div className="flex items-center gap-4">
                                                 <div className={`w-14 h-14 rounded-[1.15rem] ${item.iconColor} text-white flex items-center justify-center flex-shrink-0 shadow-inner group-hover:scale-110 transition-transform`}>
@@ -715,6 +727,9 @@
                                             </div>
                                         </div>
                                     ))}
+                                    {filteredNearby.length === 0 && (
+                                        <div className="p-8 text-center font-bold text-slate-500 text-sm">No facilities match this filter.</div>
+                                    )}
                                 </div>
                                 <button className="w-full mt-6 py-3.5 rounded-xl border-2 border-slate-200 text-sm font-extrabold text-slate-600 hover:border-primary-300 hover:text-primary-700 hover:bg-slate-50 transition shadow-sm">
                                     View full directory
