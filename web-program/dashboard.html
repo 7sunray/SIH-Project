@@ -147,6 +147,14 @@
     </style>
 </head>
 <body>
+    <script>
+        // Auth gate: no session token -> login page (runs before the app mounts).
+        try {
+            if (!localStorage.getItem('gw_token') && !/login\.html$/.test(location.pathname)) {
+                location.href = 'login.html';
+            }
+        } catch (e) {}
+    </script>
     <div id="root"></div>
 
     <script type="text/babel">
