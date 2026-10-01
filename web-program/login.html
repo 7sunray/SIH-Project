@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GovWatch - Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+                    colors: {
+                        primary: {
+                            50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4', 300: '#5eead4',
+                            400: '#2dd4bf', 500: '#14b8a6', 600: '#0d9488', 700: '#0f766e',
+                            800: '#115e59', 900: '#134e4a', DEFAULT: '#0f766e'
+                        },
+                        surface: '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f8fafc; color: #0f172a; }
+        .hero-pattern {
+            background-color: #0f766e;
+            background-image: radial-gradient(circle at 100% 0%, #115e59 0%, transparent 50%),
+                              radial-gradient(circle at 0% 100%, #134e4a 0%, transparent 50%);
+            position: relative; overflow: hidden;
+        }
+        .hero-pattern::before {
+            content: ''; position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background: url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.04"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+        }
+        .custom-shadow { box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.08); }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); }
+        @keyframes slideUp {
+            0% { opacity: 0; transform: translateY(25px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex flex-col">
+        <div class="hero-pattern text-white px-6 lg:px-12 pt-8 pb-28 rounded-bl-[2.5rem] rounded-br-[2.5rem] shadow-lg">
+            <div class="max-w-md mx-auto relative z-10">
+                <div class="flex items-center gap-3 mb-8">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>
+                    <div>
+                        <h1 class="text-2xl font-black leading-tight tracking-tight">GovWatch</h1>
+                        <p class="text-[0.55rem] font-bold text-emerald-100 tracking-[0.15em] mt-0.5">CARE. COMPLIANCE. TRUST.</p>
+                    </div>
+                </div>
+                <h2 class="text-3xl font-black tracking-tight">Welcome back, Inspector.</h2>
+                <p class="text-emerald-100/90 font-medium mt-2">Sign in to access the field workspace.</p>
+            </div>
+        </div>
+
+        <div class="px-6 -mt-16 relative z-10 pb-16">
+            <div class="glass-card max-w-md mx-auto rounded-[1.5rem] p-8 custom-shadow border border-white/50 animate-slide-up">
+                <!-- Sign-in form -->
+                <div id="login-view">
+                    <h3 class="text-xl font-extrabold text-slate-800 mb-1">Sign in</h3>
+                    <p class="text-sm font-semibold text-slate-500 mb-6">Demo login: superadmin@dosje.gov.in</p>
+                    <form id="login-form" class="flex flex-col gap-4">
+                        <div>
+                            <label class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Email</label>
+                            <input id="email" type="email" required value="superadmin@dosje.gov.in" placeholder="you@dosje.gov.in" class="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all" />
+                        </div>
+                        <div>
+                            <label class="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Password</label>
+                            <input id="password" type="password" required placeholder="••••••••" class="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:border-primary-500 focus:bg-white transition-all" />
+                        </div>
+                        <p id="login-error" class="hidden text-sm font-bold text-red-600"></p>
+                        <button id="login-btn" type="submit" class="bg-primary-800 hover:bg-primary-900 disabled:opacity-60 text-white font-extrabold py-3.5 px-6 rounded-xl shadow-md transition-all">Sign in</button>
+                    </form>
+                </div>
+
+                <!-- Already signed in -->
+                <div id="session-view" class="hidden text-center py-4">
+                    <div class="w-16 h-16 rounded-full bg-emerald-100 text-primary-800 font-black text-xl flex items-center justify-center mx-auto mb-4" id="session-avatar">IN</div>
+                    <h3 class="text-xl font-extrabold text-slate-800 mb-1">You're signed in</h3>
+                    <p class="text-sm font-semibold text-slate-500 mb-6" id="session-email"></p>
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        <button onclick="goDashboard()" class="bg-primary-800 hover:bg-primary-900 text-white font-extrabold py-3.5 px-6 rounded-xl shadow-md transition-all">Continue to Dashboard</button>
+                        <button onclick="signOut()" class="text-sm font-extrabold text-slate-500 hover:text-red-600 transition-all">Use a different account</button>
+                    </div>
+                </div>
+            </div>
+            <p class="text-center text-xs font-semibold text-slate-400 mt-6">Protected session · tokens stay on this device</p>
+        </div>
+    </div>
+
+    <script>
+        var TOKEN_KEY = 'gw_token';
+
+        function showError(msg) {
+            var el = document.getElementById('login-error');
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+
+        function goDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+
+        function signOut() {
+            try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
+            document.getElementById('session-view').classList.add('hidden');
+            document.getElementById('login-view').classList.remove('hidden');
+        }
+
+        function showSession(email) {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('session-view').classList.remove('hidden');
+            document.getElementById('session-email').textContent = email || '';
+            var initials = (email || 'IN').slice(0, 2).toUpperCase();
+            document.getElementById('session-avatar').textContent = initials;
+        }
+
+        // If a token exists, verify it before deciding what to show.
+        (async function init() {
+            var token = null;
+            try { token = localStorage.getItem(TOKEN_KEY); } catch (e) {}
+            if (!token) return;
+            try {
+                var res = await fetch('/users?limit=1', { headers: { Authorization: 'Bearer ' + token } });
+                if (!res.ok) throw new Error('invalid');
+                showSession('');
+            } catch (e) {
+                try { localStorage.removeItem(TOKEN_KEY); } catch (err) {}
+            }
+        })();
+
+        document.getElementById('login-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            var btn = document.getElementById('login-btn');
+            btn.disabled = true;
+            btn.textContent = 'Signing in…';
+            document.getElementById('login-error').classList.add('hidden');
+            var email = document.getElementById('email').value.trim();
+            var password = document.getElementById('password').value;
+            try {
+                var res = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, password: password, deviceFingerprint: 'web-login' }),
+                });
+                if (!res.ok) throw new Error('Invalid email or password.');
+                var data = await res.json();
+                try {
+                    localStorage.setItem(TOKEN_KEY, data.accessToken);
+                    if (data.refreshToken) localStorage.setItem('gw_refresh', data.refreshToken);
+                } catch (err) {}
+                goDashboard();
+            } catch (err) {
+                showError(err.message || 'Login failed.');
+                btn.disabled = false;
+                btn.textContent = 'Sign in';
+            }
+        });
+    </script>
+</body>
+</html>
