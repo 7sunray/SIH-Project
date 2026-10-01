@@ -601,7 +601,7 @@
                                         </div>
                                     </div>
                                     <div className="flex items-end justify-between">
-                                        <div className="text-6xl font-black text-slate-800 tracking-tighter">{card.val}</div>
+                                        <div className="text-5xl lg:text-6xl font-black text-slate-800 tracking-tighter">{card.val}</div>
                                         <div className={`flex items-center gap-1.5 text-[0.7rem] font-extrabold ${card.tColor} bg-white px-2.5 py-1.5 rounded-lg shadow-sm border border-slate-100 mb-1`}>
                                             <span className="w-3.5 h-3.5">{card.tIcon}</span> {card.trend}
                                         </div>
@@ -624,7 +624,7 @@
                                     </div>
                                     <div className="flex flex-col md:flex-row items-end justify-between h-full gap-8">
                                         <div className="pb-2 w-full md:w-auto">
-                                            <div className="text-7xl font-black text-slate-800 tracking-tighter">40h</div>
+                                            <div className="text-5xl lg:text-7xl font-black text-slate-800 tracking-tighter">40h</div>
                                             <div className="flex items-center gap-2 mt-3">
                                                 <span className="text-xs font-bold text-white bg-emerald-500 px-2 py-1 rounded-md flex items-center gap-1 shadow-sm"><Icons.TrendUp /> 12%</span>
                                                 <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">vs last week</span>
@@ -841,13 +841,13 @@
                         <div className="w-full lg:w-5/12 flex flex-col gap-6">
                             <div className="rounded-[1.25rem] border border-slate-200 p-8 bg-white shadow-sm">
                                 <div className="flex items-center gap-2 text-primary-700 mb-4 font-bold text-sm"><Icons.MapPin /> <span className="uppercase tracking-wider">Registered Location</span></div>
-                                <p className="text-4xl font-black text-slate-800 tracking-tighter mb-3">{institute.lat.toFixed(4)}° N, {institute.lng.toFixed(4)}° E</p>
+                                <p className="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-3">{institute.lat.toFixed(4)}° N, {institute.lng.toFixed(4)}° E</p>
                                 <p className="text-[0.9rem] text-slate-500 font-bold border-t border-slate-100 pt-4 mt-1">{institute.name}, {institute.address}</p>
                             </div>
                             <div className="rounded-[1.25rem] border border-slate-200 p-8 bg-slate-50 shadow-sm relative overflow-hidden">
                                 <div className="absolute top-0 right-0 w-48 h-48 bg-sky-200 rounded-full blur-[80px] -mr-20 -mt-20 opacity-40 pointer-events-none"></div>
                                 <div className="flex items-center gap-2 text-primary-700 mb-4 font-bold text-sm relative z-10"><Icons.Crosshair /> <span className="uppercase tracking-wider">Your Location</span></div>
-                                <p className="text-4xl font-black text-slate-800 tracking-tighter mb-5 relative z-10">{(institute.lat + 0.0002).toFixed(4)}° N, {(institute.lng - 0.0002).toFixed(4)}° E</p>
+                                <p className="text-3xl lg:text-4xl font-black text-slate-800 tracking-tighter mb-5 relative z-10">{(institute.lat + 0.0002).toFixed(4)}° N, {(institute.lng - 0.0002).toFixed(4)}° E</p>
                                 <div className="flex flex-wrap items-center gap-3 relative z-10">
                                     <span className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-xl text-xs font-extrabold shadow-sm">Accuracy: ±4m</span>
                                     <span className="bg-emerald-50 border border-emerald-200 text-primary-800 px-4 py-2 rounded-xl text-xs font-extrabold shadow-sm flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div> Verified Device GPS</span>
@@ -1131,7 +1131,7 @@
                                 <Icons.ArrowLeft />
                             </button>
                             <div>
-                                <h2 className="text-4xl lg:text-5xl font-black tracking-tight mb-2 drop-shadow-sm">Field Inspection</h2>
+                                <h2 className="text-3xl lg:text-5xl font-black tracking-tight mb-2 drop-shadow-sm">Field Inspection</h2>
                                 <p className="text-emerald-100 text-lg font-medium">On-site verification workflow</p>
                             </div>
                         </div>
