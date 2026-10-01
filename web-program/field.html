@@ -450,12 +450,19 @@
 
             const galleryItems = [...userEvidence, ...evidenceMock];
 
+            // Hide removed cards for this session (built-ins return on refresh;
+            // user uploads are session-only anyway).
+            const [removedIds, setRemovedIds] = useState([]);
+            const [menuFor, setMenuFor] = useState(null);
+            const visibleGallery = galleryItems.filter((x) => !removedIds.includes(x.id));
+
             // Lightbox viewer for gallery items.
             const [lightboxItem, setLightboxItem] = useState(null);
             const [lightboxClock, setLightboxClock] = useState('');
             const removeEvidence = (id) => {
                 if (lightboxItem && lightboxItem.id === id) setLightboxItem(null);
-                setUserEvidence((prev) => prev.filter((x) => x.id !== id));
+                setMenuFor(null);
+                setRemovedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
             };
 
             // Ticking CCTV timestamp while the viewer is open.
@@ -790,14 +797,14 @@
                     <div className="flex items-center justify-between mb-6 pb-3">
                         <h4 className="font-extrabold text-slate-800 text-lg">Evidence Gallery</h4>
                         <div className="bg-emerald-50 text-primary-800 px-4 py-2 rounded-xl text-xs font-bold border border-emerald-100 flex items-center gap-2 shadow-sm">
-                            <Icons.CheckCircleSolid /> {galleryItems.length} files attached
+                            <Icons.CheckCircleSolid /> {visibleGallery.length} files attached
                         </div>
                     </div>
 
                     {/* Expand grid to 4 columns on large screens to fill space */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-                        {galleryItems.map((item, gIdx) => (
-                            <div key={item.id} onClick={() => setLightboxItem({ ...item, camNo: gIdx + 1 })} className="border border-slate-200 rounded-[1.25rem] overflow-hidden flex flex-col hover:shadow-lg hover:border-primary-300 transition-all bg-white group cursor-pointer">
+                        {visibleGallery.map((item, gIdx) => (
+                            <div key={item.id} onClick={() => { setMenuFor(null); setLightboxItem({ ...item, camNo: gIdx + 1 }); }} className="border border-slate-200 rounded-[1.25rem] overflow-hidden flex flex-col hover:shadow-lg hover:border-primary-300 transition-all bg-white group cursor-pointer">
                                 <div className="h-44 w-full relative overflow-hidden bg-slate-100">
                                     {item.kind === 'video' ? (
                                         <video src={item.url} className="w-full h-full object-cover" preload="metadata" playsInline onClick={(e) => e.stopPropagation()} controls />
@@ -814,7 +821,15 @@
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <h5 className="font-extrabold text-slate-800 text-base">{item.title}</h5>
-                                            <div className="text-slate-400 hover:text-slate-700 transition-colors"><Icons.Dots /></div>
+                                            <div className="relative">
+                                                <div className="text-slate-400 hover:text-slate-700 transition-colors cursor-pointer p-1" onClick={(e) => { e.stopPropagation(); setMenuFor(menuFor === item.id ? null : item.id); }}><Icons.Dots /></div>
+                                                {menuFor === item.id && (
+                                                    <div className="absolute right-0 top-8 z-30 w-36 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                                        <button onClick={() => { setMenuFor(null); setLightboxItem({ ...item }); }} className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-slate-700 hover:bg-slate-50 transition-colors">View</button>
+                                                        <button onClick={() => removeEvidence(item.id)} className="w-full text-left px-4 py-2.5 text-xs font-extrabold text-red-600 hover:bg-red-50 transition-colors">Remove</button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="text-[0.75rem] text-slate-500 font-semibold flex items-center gap-2 mb-1.5">
                                             <Icons.Calendar /> {item.time}
@@ -856,9 +871,7 @@
                             <div className="bg-black border-t border-white/10 px-4 py-3 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
                                 <p className="text-xs md:text-sm font-bold text-white/80">{lightboxItem.title} · {lightboxItem.time} · {Number(lightboxItem.lat).toFixed(4)}° N, {Number(lightboxItem.lng).toFixed(4)}° E</p>
                                 <div className="flex gap-2">
-                                    {String(lightboxItem.id).startsWith('u') && (
-                                        <button onClick={() => removeEvidence(lightboxItem.id)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-red-300 border border-red-400/50 hover:bg-red-500/10 transition-all">Remove</button>
-                                    )}
+                                    <button onClick={() => removeEvidence(lightboxItem.id)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-red-300 border border-red-400/50 hover:bg-red-500/10 transition-all">Remove</button>
                                     <button onClick={() => setLightboxItem(null)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-black bg-white hover:bg-slate-200 transition-all">Close</button>
                                 </div>
                             </div>
@@ -905,7 +918,7 @@
                                 <div className="w-full h-px bg-slate-100"></div>
                                 <div className="flex justify-between items-center text-[0.95rem]">
                                     <span className="text-slate-500 font-bold flex items-center gap-2"><Icons.CameraIcon /> Evidence Files</span>
-                                    <span className="font-extrabold text-slate-800">{galleryItems.length} Attached</span>
+                                    <span className="font-extrabold text-slate-800">{visibleGallery.length} Attached</span>
                                 </div>
                                 <div className="w-full h-px bg-slate-100"></div>
                                 <div className="flex justify-between items-center text-[0.95rem]">
