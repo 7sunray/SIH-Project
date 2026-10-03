@@ -271,7 +271,7 @@
         // ============ PAGE: AI ANOMALY ALERTS ============
         function AlertsPage({ onNavigate }) {
             const [filter, setFilter] = useState('All');
-            const [token] = useState(() => { try { return localStorage.getItem('gw_token') || ''; } catch (e) { return ''; } });
+            const [token, setToken] = useState(() => { try { return localStorage.getItem('gw_token') || ''; } catch (e) { return ''; } });
             const [alerts, setAlerts] = useState([]);
             const [loading, setLoading] = useState(false);
             const [loadError, setLoadError] = useState('');
@@ -297,15 +297,70 @@
                 return [];
             };
 
-            const apiFetch = async (path, options) => {
-                const res = await fetch(path, {
-                    ...(options || {}),
-                    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}), ...((options && options.headers) || {}) },
-                });
-                if (!res.ok) {
+            const friendlyError = async (res) => {
+                let msg = 'Request failed: ' + res.status;
+                try {
                     const text = await res.text();
-                    throw new Error(text.slice(0, 200) || ('Request failed: ' + res.status));
+                    try {
+                        const j = JSON.parse(text);
+                        if (j.message) msg = Array.isArray(j.message) ? j.message.join('; ') : j.message;
+                    } catch (e) {
+                        if (text) msg = text.slice(0, 200);
+                    }
+                } catch (e) {}
+                return new Error(msg);
+            };
+
+            const doRefresh = async () => {
+                let rt = null;
+                try { rt = localStorage.getItem('gw_refresh'); } catch (e) {}
+                if (!rt) return null;
+                try {
+                    const res = await fetch('/auth/refresh', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ refreshToken: rt }),
+                    });
+                    if (!res.ok) return null;
+                    const data = await res.json();
+                    if (!data.accessToken) return null;
+                    try {
+                        localStorage.setItem('gw_token', data.accessToken);
+                        if (data.refreshToken) localStorage.setItem('gw_refresh', data.refreshToken);
+                    } catch (e) {}
+                    setToken(data.accessToken);
+                    return data.accessToken;
+                } catch (e) {
+                    return null;
                 }
+            };
+
+            const forceLogin = () => {
+                try { localStorage.removeItem('gw_token'); localStorage.removeItem('gw_refresh'); localStorage.removeItem('gw_email'); } catch (e) {}
+                setToken('');
+                window.location.href = 'login.html';
+            };
+
+            const apiFetch = async (path, options, retried) => {
+                const attempt = (tok) => fetch(path, {
+                    ...(options || {}),
+                    headers: { 'Content-Type': 'application/json', ...(tok ? { Authorization: 'Bearer ' + tok } : {}), ...((options && options.headers) || {}) },
+                });
+                let res = await attempt(token);
+                if (res.status === 401 && !retried) {
+                    const nt = await doRefresh();
+                    if (nt) {
+                        res = await attempt(nt);
+                    } else {
+                        forceLogin();
+                        throw new Error('unauthorized');
+                    }
+                }
+                if (res.status === 401) {
+                    forceLogin();
+                    throw new Error('unauthorized');
+                }
+                if (!res.ok) throw await friendlyError(res);
                 return res.json();
             };
 
