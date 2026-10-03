@@ -278,11 +278,19 @@
             const [search, setSearch] = useState('');
             const [busy, setBusy] = useState({});
             const [actionError, setActionError] = useState('');
+            const [viewerFeed, setViewerFeed] = useState(null);
 
-            const TYPE_IMG = {
-                CCTV_FEED_INTERRUPTED: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
-                BENEFICIARY_COUNT_MISMATCH: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80',
-                DEFAULT: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80',
+            // Site photos, matched to each alert by title.
+            const pickImg = (title) => {
+                const t = (title || '').toLowerCase();
+                if (t.includes('offline for 6')) return 'cctv-offline-6hr.jpg';
+                if (t.includes('interrupted')) return 'cctv-feed-interrupt.png';
+                if (t.includes('beneficiary headcount')) return 'beneficiary-headcount.jpg';
+                if (t.includes('headcount mismatch at nirmal')) return 'headcount-mismatch.jpg';
+                if (t.includes('visitor')) return 'unregistered-visitor.png';
+                if (t.includes('staff attendance')) return 'staff-attendance.jpg';
+                if (t.includes('unusual movement')) return 'unusual-movement.jpg';
+                return 'cctv-feed-interrupt.png';
             };
             const SEV = {
                 CRITICAL: { label: 'Critical', color: 'red' },
@@ -416,7 +424,8 @@
                             date: dt.date,
                             time: dt.time,
                             status: a.status || 'DETECTED',
-                            img: TYPE_IMG[a.anomalyType] || TYPE_IMG.DEFAULT,
+                            phone: inst.contactPhone || '',
+                            img: pickImg(a.title),
                         };
                     });
                     // Open alerts first, then by severity.
@@ -605,6 +614,35 @@
                         {actionError && (
                             <div className="bg-red-50 rounded-[1.5rem] p-4 custom-shadow border border-red-200 text-center font-bold text-red-600 text-sm">{actionError}</div>
                         )}
+                        {viewerFeed && (
+                            <div className="fixed inset-0 z-50 bg-black flex flex-col" onClick={() => setViewerFeed(null)}>
+                                <div className="relative flex-1 flex items-center justify-center overflow-hidden min-h-0" onClick={(e) => e.stopPropagation()}>
+                                    <img src={viewerFeed.img} alt={viewerFeed.title} className="max-w-full max-h-full object-contain" />
+                                    <div className="absolute top-4 left-4 md:top-6 md:left-6 bg-black/70 text-white px-4 py-2 font-mono font-bold tracking-wider text-sm md:text-xl">
+                                        {(viewerFeed.title || 'ALERT').toUpperCase().slice(0, 40)}
+                                    </div>
+                                    <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-black/70 text-white px-4 py-2 font-mono font-bold tracking-wider text-sm md:text-xl">
+                                        {viewerFeed.date} {viewerFeed.time}
+                                    </div>
+                                </div>
+                                <div className="bg-black border-t border-white/10 px-4 py-3 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                                    <p className="text-xs md:text-sm font-bold text-white/80">{viewerFeed.loc}{viewerFeed.phone ? ' · ' + viewerFeed.phone : ''}</p>
+                                    <div className="flex gap-2">
+                                        {viewerFeed.phone ? (
+                                            <a href={'tel:' + viewerFeed.phone} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-black bg-white hover:bg-slate-200 transition-all">Verify by call</a>
+                                        ) : (
+                                            <button onClick={handleVerifyCall} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-black bg-white hover:bg-slate-200 transition-all">Verify by call</button>
+                                        )}
+                                        {(viewerFeed.status === 'DETECTED' || viewerFeed.status === 'INVESTIGATING') ? (
+                                            <button disabled={!!busy[viewerFeed.id]} onClick={() => handleEscalate(viewerFeed)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white bg-primary-700 hover:bg-primary-800 disabled:opacity-60 transition-all">Escalate</button>
+                                        ) : (
+                                            <span className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-emerald-300 border border-emerald-400/50">{viewerFeed.status}</span>
+                                        )}
+                                        <button onClick={() => setViewerFeed(null)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white/80 border border-white/20 hover:bg-white/10 transition-all">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex flex-col gap-6">
                             {token && !loading && !loadError && filteredFeeds.length === 0 && (
                                 <div className="bg-white rounded-[1.5rem] p-8 custom-shadow border border-slate-100 text-center font-bold text-slate-500">No alerts found.</div>
@@ -616,11 +654,11 @@
                                         
                                         {/* Image Section (Left on Desktop) */}
                                         <div className="feed-frame h-64 lg:h-auto lg:w-4/12 relative overflow-hidden bg-slate-900 flex-shrink-0">
-                                            <img src={feed.img} alt={feed.title} className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700" />
+                                            <img src={feed.img} alt={feed.title} onClick={() => setViewerFeed(feed)} className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-700 cursor-zoom-in" />
                                             <div className="absolute top-4 left-4 bg-emerald-500/90 text-white px-3 py-1.5 rounded-lg text-[0.7rem] font-black tracking-widest uppercase flex items-center gap-2 shadow-lg backdrop-blur-md z-10">
                                                 <div className="live-pulse w-2 h-2 rounded-full bg-white"></div> LIVE
                                             </div>
-                                            <div className="absolute top-4 right-4 bg-black/50 text-white p-2.5 rounded-xl backdrop-blur-md cursor-pointer hover:bg-black/70 transition z-10"><Icons.Expand /></div>
+                                            <div className="absolute top-4 right-4 bg-black/50 text-white p-2.5 rounded-xl backdrop-blur-md cursor-pointer hover:bg-black/70 transition z-10" onClick={() => setViewerFeed(feed)}><Icons.Expand /></div>
                                             <div className="absolute bottom-4 left-4 bg-black/50 text-white px-3.5 py-2 rounded-xl backdrop-blur-md flex items-center gap-2.5 text-xs font-bold z-10"><Icons.CameraIcon /> {feed.shortId}</div>
                                             <div className="absolute bottom-4 right-4 bg-black/45 text-white px-2.5 py-1.5 rounded-lg backdrop-blur-md text-[0.6rem] font-black tracking-widest uppercase z-10">AI monitored</div>
                                         </div>
