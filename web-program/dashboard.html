@@ -393,6 +393,43 @@
             const [officersLoading, setOfficersLoading] = useState(false);
             const [officersError, setOfficersError] = useState('');
             const [officerCount, setOfficerCount] = useState(null);
+            const [pendingCount, setPendingCount] = useState(null);
+            const [completedCount, setCompletedCount] = useState(null);
+            const [anomaliesCount, setAnomaliesCount] = useState(null);
+
+            // Live metric counts on entry (mock numbers stay until loaded).
+            useEffect(() => {
+                let stop = false;
+                (async () => {
+                    try {
+                        const t = localStorage.getItem('gw_token');
+                        if (!t) return;
+                        const get = async (p) => {
+                            const r = await fetch(p, { headers: { Authorization: 'Bearer ' + t } });
+                            if (!r.ok) return null;
+                            return r.json();
+                        };
+                        const [iR, aR, uR] = await Promise.all([get('/inspections'), get('/anomalies?limit=100'), get('/users?limit=100')]);
+                        if (stop) return;
+                        const arr = (x) => (Array.isArray(x) ? x : ((x && x.data) || []));
+                        if (iR) {
+                            const insp = arr(iR);
+                            const now = new Date();
+                            const isToday = (iso) => {
+                                try {
+                                    const d = new Date(iso);
+                                    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+                                } catch (e) { return false; }
+                            };
+                            setPendingCount(insp.filter((s) => s.status === 'SCHEDULED' && !s.assignedOfficerId).length);
+                            setCompletedCount(insp.filter((s) => s.completedAt && isToday(s.completedAt)).length);
+                        }
+                        if (aR) setAnomaliesCount(arr(aR).filter((a) => a.status === 'DETECTED' || a.status === 'INVESTIGATING').length);
+                        if (uR) setOfficerCount(arr(uR).filter((u) => (u.role === 'PMU_OFFICER' || u.role === 'NGO_MANAGER' || u.role === 'NGO_DATA_SUBMITTER') && (!u.status || u.status === 'ACTIVE')).length);
+                    } catch (e) {}
+                })();
+                return () => { stop = true; };
+            }, []);
             const [mapFacility, setMapFacility] = useState(null);
             const [todayOpen, setTodayOpen] = useState(false);
             const [todayList, setTodayList] = useState([]);
@@ -708,9 +745,9 @@
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[
-                                { title: 'Pending\nInspections', val: '4', icon: <Icons.Clock/>, color: 'text-primary-700', bg: 'bg-emerald-50', trend: '↓ 2 vs yesterday', tColor: 'text-emerald-600', tIcon: <Icons.TrendDown/>, go: 'inspections.html' },
+                                { title: 'Pending\nInspections', val: pendingCount == null ? '4' : String(pendingCount), icon: <Icons.Clock/>, color: 'text-primary-700', bg: 'bg-emerald-50', trend: '↓ 2 vs yesterday', tColor: 'text-emerald-600', tIcon: <Icons.TrendDown/>, go: 'inspections.html' },
                                 { title: 'Completed\nToday', val: completedCount == null ? '12' : String(completedCount), icon: <Icons.CheckCircle/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: '↑ 15% vs average', tColor: 'text-emerald-600', tIcon: <Icons.TrendUp/>, modal: 'today' },
-                                { title: 'AI Anomalies\nFlagged', val: '7', icon: <Icons.Alert/>, color: 'text-amber-600', bg: 'bg-amber-50', trend: '↑ 2 new alerts', tColor: 'text-amber-600', tIcon: <Icons.TrendUp/>, go: 'ai_anomaly.html' },
+                                { title: 'AI Anomalies\nFlagged', val: anomaliesCount == null ? '7' : String(anomaliesCount), icon: <Icons.Alert/>, color: 'text-amber-600', bg: 'bg-amber-50', trend: '↑ 2 new alerts', tColor: 'text-amber-600', tIcon: <Icons.TrendUp/>, go: 'ai_anomaly.html' },
                                 { title: 'Active Field\nOfficers', val: officerCount == null ? '28' : String(officerCount), icon: <Icons.UsersIcon/>, color: 'text-purple-600', bg: 'bg-purple-50', trend: '92% deployment', tColor: 'text-primary-600', tIcon: <Icons.CheckCircleSolid/>, modal: 'officers' }
                             ].map((card, idx) => (
                                 <div key={idx} onClick={() => { if (card.go) window.location.href = card.go; else if (card.modal === 'officers') openOfficers(); else if (card.modal === 'today') openToday(); }} className={`metric-card bg-white rounded-[1.5rem] p-6 lg:p-8 custom-shadow border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1.5 bg-gradient-to-br from-white to-slate-50/50 stagger-${idx+1} animate-slide-up`}>
