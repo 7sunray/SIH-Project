@@ -395,6 +395,9 @@
             const [officerCount, setOfficerCount] = useState(null);
             const [pendingCount, setPendingCount] = useState(null);
             const [anomaliesCount, setAnomaliesCount] = useState(null);
+            const [volRange, setVolRange] = useState('This Week');
+            const [volMenuOpen, setVolMenuOpen] = useState(false);
+            const [allInsp, setAllInsp] = useState([]);
 
             // Live metric counts on entry (mock numbers stay until loaded).
             useEffect(() => {
@@ -413,6 +416,7 @@
                         const arr = (x) => (Array.isArray(x) ? x : ((x && x.data) || []));
                         if (iR) {
                             const insp = arr(iR);
+                            setAllInsp(insp);
                             const now = new Date();
                             const isToday = (iso) => {
                                 try {
@@ -613,17 +617,64 @@
                 return true;
             });
 
+            // Inspection volume buckets, computed from real inspection dates.
+            const buildVolume = (list, range) => {
+                const at = (s) => {
+                    const v = s.completedAt || s.scheduledDate || s.createdAt;
+                    const d = v ? new Date(v) : null;
+                    return d && !isNaN(d.getTime()) ? d : null;
+                };
+                const sod = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+                const sum = (a) => a.reduce((t, n) => t + n, 0);
+                const pct = (c, p) => (p > 0 ? Math.round(((c - p) / p) * 100) : (c > 0 ? 100 : 0));
+                const now = new Date();
+                if (range === 'Last 30 Days') {
+                    const labels = ['W1', 'W2', 'W3', 'W4'];
+                    const values = [0, 0, 0, 0];
+                    const prev = [0, 0, 0, 0];
+                    list.forEach((s) => {
+                        const d = at(s);
+                        if (!d) return;
+                        const diff = Math.floor((sod(now) - sod(d)) / 86400000);
+                        if (diff >= 0 && diff < 28) values[3 - Math.floor(diff / 7)]++;
+                        else if (diff >= 28 && diff < 56) prev[3 - Math.floor((diff - 28) / 7)]++;
+                    });
+                    const total = sum(values);
+                    return { labels, values, total, delta: pct(total, sum(prev)), vsLabel: 'VS PRIOR 30 DAYS' };
+                }
+                const start = sod(now);
+                start.setDate(now.getDate() - now.getDay() - (range === 'Last Week' ? 7 : 0));
+                const values = [0, 0, 0, 0, 0, 0, 0];
+                const prev = [0, 0, 0, 0, 0, 0, 0];
+                list.forEach((s) => {
+                    const d = at(s);
+                    if (!d) return;
+                    const diff = Math.floor((sod(d) - start) / 86400000);
+                    if (diff >= 0 && diff < 7) values[diff]++;
+                    else if (diff >= -7 && diff < 0) prev[diff + 7]++;
+                });
+                const total = sum(values);
+                return {
+                    labels: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+                    values, total,
+                    delta: pct(total, sum(prev)),
+                    vsLabel: range === 'Last Week' ? 'VS WEEK BEFORE' : 'VS LAST WEEK',
+                };
+            };
+            const vol = buildVolume(allInsp, volRange);
+
             useEffect(() => {
                 const ctx = chartRef.current?.getContext('2d');
                 if (ctx) {
                     if (chartInstance.current) chartInstance.current.destroy();
+                    const peak = vol.values.indexOf(Math.max(...vol.values));
                     chartInstance.current = new Chart(ctx, {
                         type: 'bar',
                         data: {
-                            labels: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
+                            labels: vol.labels,
                             datasets: [{
-                                data: [4, 6, 5, 9, 5, 8, 3],
-                                backgroundColor: ['#ccfbf1', '#ccfbf1', '#ccfbf1', '#0f766e', '#ccfbf1', '#ccfbf1', '#ccfbf1'],
+                                data: vol.values,
+                                backgroundColor: vol.values.map((v, i) => (i === peak && v > 0 ? '#0f766e' : '#ccfbf1')),
                                 borderRadius: 8,
                                 borderSkipped: false,
                                 barPercentage: 0.5,
@@ -651,7 +702,7 @@
                 return () => {
                     if (chartInstance.current) chartInstance.current.destroy();
                 };
-            }, []);
+            }, [volRange, allInsp]);
 
             return (
                 <div className="dashboard-shell flex-1 w-full min-h-screen relative pb-20">
@@ -771,19 +822,31 @@
                                 <div className="bg-white rounded-[1.5rem] p-8 lg:p-10 custom-shadow border border-slate-100 flex flex-col justify-between animate-slide-up">
                                     <div className="flex justify-between items-start mb-10">
                                         <div>
-                                            <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">Weekly Inspection Volume</h3>
-                                            <p className="text-[0.95rem] text-slate-500 font-semibold mt-1">Hours logged across all districts</p>
+                                            <h3 className="text-2xl font-extrabold text-slate-800 tracking-tight">{volRange === 'Last 30 Days' ? 'Monthly Inspection Volume' : 'Weekly Inspection Volume'}</h3>
+                                            <p className="text-[0.95rem] text-slate-500 font-semibold mt-1">Inspections across all districts</p>
                                         </div>
-                                        <button className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm hover:bg-slate-100 hover:border-slate-300 transition">
-                                            This Week <Icons.ChevronDown />
-                                        </button>
+                                        <div className="relative">
+                                            <button onClick={() => setVolMenuOpen((o) => !o)} className="bg-slate-50 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm hover:bg-slate-100 hover:border-slate-300 transition">
+                                                {volRange} <Icons.ChevronDown />
+                                            </button>
+                                            {volMenuOpen && (
+                                                <React.Fragment>
+                                                    <div className="fixed inset-0 z-40" onClick={() => setVolMenuOpen(false)}></div>
+                                                    <div className="absolute right-0 top-full mt-2 z-50 w-44 bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+                                                        {['This Week', 'Last Week', 'Last 30 Days'].map((r) => (
+                                                            <button key={r} onClick={() => { setVolRange(r); setVolMenuOpen(false); }} className={`w-full text-left px-4 py-3 text-xs font-extrabold transition-colors ${r === volRange ? 'bg-primary-50 text-primary-800' : 'text-slate-600 hover:bg-slate-50'}`}>{r}</button>
+                                                        ))}
+                                                    </div>
+                                                </React.Fragment>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="flex flex-col md:flex-row items-end justify-between h-full gap-8">
                                         <div className="pb-2 w-full md:w-auto">
-                                            <div className="text-7xl font-black text-slate-800 tracking-tighter">40h</div>
+                                            <div className="text-7xl font-black text-slate-800 tracking-tighter">{vol.total}</div>
                                             <div className="flex items-center gap-2 mt-3">
-                                                <span className="text-xs font-bold text-white bg-emerald-500 px-2 py-1 rounded-md flex items-center gap-1 shadow-sm"><Icons.TrendUp /> 12%</span>
-                                                <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">vs last week</span>
+                                                <span className="text-xs font-bold text-white bg-emerald-500 px-2 py-1 rounded-md flex items-center gap-1 shadow-sm">{vol.delta >= 0 ? <Icons.TrendUp /> : <Icons.TrendDown />} {vol.delta >= 0 ? '+' : ''}{vol.delta}%</span>
+                                                <span className="text-xs font-extrabold text-slate-400 uppercase tracking-widest">{vol.vsLabel}</span>
                                             </div>
                                         </div>
                                         <div className="flex-1 min-w-0 w-full h-[200px] relative overflow-hidden">
