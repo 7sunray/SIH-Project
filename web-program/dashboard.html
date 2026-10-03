@@ -588,12 +588,12 @@
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[
-                                { title: 'Pending\nInspections', val: '4', icon: <Icons.Clock/>, color: 'text-primary-700', bg: 'bg-emerald-50', trend: '↓ 2 vs yesterday', tColor: 'text-emerald-600', tIcon: <Icons.TrendDown/> },
+                                { title: 'Pending\nInspections', val: '4', icon: <Icons.Clock/>, color: 'text-primary-700', bg: 'bg-emerald-50', trend: '↓ 2 vs yesterday', tColor: 'text-emerald-600', tIcon: <Icons.TrendDown/>, go: 'inspections.html' },
                                 { title: 'Completed\nToday', val: '12', icon: <Icons.CheckCircle/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: '↑ 15% vs average', tColor: 'text-emerald-600', tIcon: <Icons.TrendUp/> },
-                                { title: 'AI Anomalies\nFlagged', val: '7', icon: <Icons.Alert/>, color: 'text-amber-600', bg: 'bg-amber-50', trend: '↑ 2 new alerts', tColor: 'text-amber-600', tIcon: <Icons.TrendUp/> },
+                                { title: 'AI Anomalies\nFlagged', val: '7', icon: <Icons.Alert/>, color: 'text-amber-600', bg: 'bg-amber-50', trend: '↑ 2 new alerts', tColor: 'text-amber-600', tIcon: <Icons.TrendUp/>, go: 'ai_anomaly.html' },
                                 { title: 'Active Field\nOfficers', val: '28', icon: <Icons.UsersIcon/>, color: 'text-purple-600', bg: 'bg-purple-50', trend: '92% deployment', tColor: 'text-primary-600', tIcon: <Icons.CheckCircleSolid/> }
                             ].map((card, idx) => (
-                                <div key={idx} className={`metric-card bg-white rounded-[1.5rem] p-6 lg:p-8 custom-shadow border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1.5 bg-gradient-to-br from-white to-slate-50/50 stagger-${idx+1} animate-slide-up`}>
+                                <div key={idx} onClick={card.go ? () => window.location.href = card.go : undefined} className={`metric-card bg-white rounded-[1.5rem] p-6 lg:p-8 custom-shadow border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1.5 bg-gradient-to-br from-white to-slate-50/50 stagger-${idx+1} animate-slide-up`}>
                                     <div className="flex justify-between items-start mb-8">
                                         <h3 className="text-lg font-extrabold text-slate-800 leading-snug whitespace-pre-line tracking-tight">{card.title}</h3>
                                         <div className={`w-14 h-14 rounded-[1.15rem] ${card.bg} ${card.color} flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner`}>
