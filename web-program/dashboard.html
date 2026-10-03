@@ -393,6 +393,91 @@
             const [officersLoading, setOfficersLoading] = useState(false);
             const [officersError, setOfficersError] = useState('');
             const [officerCount, setOfficerCount] = useState(null);
+            const [todayOpen, setTodayOpen] = useState(false);
+            const [todayList, setTodayList] = useState([]);
+            const [todayLoading, setTodayLoading] = useState(false);
+            const [todayError, setTodayError] = useState('');
+            const [completedCount, setCompletedCount] = useState(null);
+
+            const sameDay = (iso) => {
+                try {
+                    const d = new Date(iso);
+                    const n = new Date();
+                    return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
+                } catch (e) {
+                    return false;
+                }
+            };
+
+            const fmtTime = (iso) => {
+                try {
+                    const d = new Date(iso);
+                    let h = d.getHours();
+                    const ap = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12 || 12;
+                    return String(h).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + ap;
+                } catch (e) {
+                    return '';
+                }
+            };
+
+            const openToday = async () => {
+                setTodayOpen(true);
+                setTodayLoading(true);
+                setTodayError('');
+                try {
+                    let tok = null;
+                    try { tok = localStorage.getItem('gw_token'); } catch (e) {}
+                    if (!tok) throw new Error('signed-out');
+                    const get = async (p) => {
+                        const res = await fetch(p, { headers: { Authorization: 'Bearer ' + tok } });
+                        if (res.status === 401) throw new Error('signed-out');
+                        if (!res.ok) throw new Error('Request failed: ' + res.status);
+                        return res.json();
+                    };
+                    const [inspRes, projRes, instRes, userRes, anomRes] = await Promise.all([
+                        get('/inspections'), get('/projects?limit=100'), get('/institutes?limit=100'),
+                        get('/users?limit=100'), get('/anomalies?limit=100'),
+                    ]);
+                    const asArr = (x) => (Array.isArray(x) ? x : (x.data || []));
+                    const projById = {};
+                    asArr(projRes).forEach((p) => { projById[p.id] = p; });
+                    const instById = {};
+                    asArr(instRes).forEach((i) => { instById[i.id] = i; });
+                    const userById = {};
+                    asArr(userRes).forEach((u) => { userById[u.id] = ((u.firstName || '') + ' ' + (u.lastName || '')).trim() || u.email; });
+                    const placeOf = (pid) => {
+                        const p = projById[pid] || {};
+                        const inst = instById[p.instituteNgoId] || {};
+                        return inst.name || p.title || 'Untitled';
+                    };
+                    const doneInsp = asArr(inspRes)
+                        .filter((s) => s.completedAt && sameDay(s.completedAt))
+                        .map((s) => ({
+                            key: 'insp-' + s.id,
+                            kind: 'Inspection',
+                            title: placeOf(s.projectId),
+                            sub: (s.status || '').replace(/_/g, ' ') + (s.assignedOfficerId && userById[s.assignedOfficerId] ? ' · ' + userById[s.assignedOfficerId] : ''),
+                            time: fmtTime(s.completedAt),
+                        }));
+                    const doneAnom = asArr(anomRes)
+                        .filter((a) => a.status === 'RESOLVED' && a.resolvedAt && sameDay(a.resolvedAt))
+                        .map((a) => ({
+                            key: 'anom-' + a.id,
+                            kind: 'Anomaly',
+                            title: a.title || a.anomalyType,
+                            sub: 'Resolved · ' + placeOf(a.projectId),
+                            time: fmtTime(a.resolvedAt),
+                        }));
+                    const all = [...doneInsp, ...doneAnom];
+                    setTodayList(all);
+                    setCompletedCount(all.length);
+                } catch (err) {
+                    setTodayError(err.message === 'signed-out' ? 'Session expired — please sign in again.' : (err.message || 'Failed to load today’s work.'));
+                    setTodayList([]);
+                }
+                setTodayLoading(false);
+            };
 
             const openOfficers = async () => {
                 setOfficersOpen(true);
@@ -623,11 +708,11 @@
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[
                                 { title: 'Pending\nInspections', val: '4', icon: <Icons.Clock/>, color: 'text-primary-700', bg: 'bg-emerald-50', trend: '↓ 2 vs yesterday', tColor: 'text-emerald-600', tIcon: <Icons.TrendDown/>, go: 'inspections.html' },
-                                { title: 'Completed\nToday', val: '12', icon: <Icons.CheckCircle/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: '↑ 15% vs average', tColor: 'text-emerald-600', tIcon: <Icons.TrendUp/> },
+                                { title: 'Completed\nToday', val: completedCount == null ? '12' : String(completedCount), icon: <Icons.CheckCircle/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: '↑ 15% vs average', tColor: 'text-emerald-600', tIcon: <Icons.TrendUp/>, modal: 'today' },
                                 { title: 'AI Anomalies\nFlagged', val: '7', icon: <Icons.Alert/>, color: 'text-amber-600', bg: 'bg-amber-50', trend: '↑ 2 new alerts', tColor: 'text-amber-600', tIcon: <Icons.TrendUp/>, go: 'ai_anomaly.html' },
                                 { title: 'Active Field\nOfficers', val: officerCount == null ? '28' : String(officerCount), icon: <Icons.UsersIcon/>, color: 'text-purple-600', bg: 'bg-purple-50', trend: '92% deployment', tColor: 'text-primary-600', tIcon: <Icons.CheckCircleSolid/>, modal: 'officers' }
                             ].map((card, idx) => (
-                                <div key={idx} onClick={() => { if (card.go) window.location.href = card.go; else if (card.modal === 'officers') openOfficers(); }} className={`metric-card bg-white rounded-[1.5rem] p-6 lg:p-8 custom-shadow border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1.5 bg-gradient-to-br from-white to-slate-50/50 stagger-${idx+1} animate-slide-up`}>
+                                <div key={idx} onClick={() => { if (card.go) window.location.href = card.go; else if (card.modal === 'officers') openOfficers(); else if (card.modal === 'today') openToday(); }} className={`metric-card bg-white rounded-[1.5rem] p-6 lg:p-8 custom-shadow border border-slate-100 relative overflow-hidden group hover:shadow-xl transition-all cursor-pointer hover:-translate-y-1.5 bg-gradient-to-br from-white to-slate-50/50 stagger-${idx+1} animate-slide-up`}>
                                     <div className="flex justify-between items-start mb-8">
                                         <h3 className="text-lg font-extrabold text-slate-800 leading-snug whitespace-pre-line tracking-tight">{card.title}</h3>
                                         <div className={`w-14 h-14 rounded-[1.15rem] ${card.bg} ${card.color} flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner`}>
@@ -802,6 +887,41 @@
                                                 <p className="font-extrabold text-slate-800 text-sm truncate">{o.name}</p>
                                                 <p className="text-xs font-semibold text-slate-500 truncate">{o.juris}</p>
                                             </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {/* Completed-today view */}
+                    {todayOpen && (
+                        <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 md:p-8" onClick={() => setTodayOpen(false)}>
+                            <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                                <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-extrabold text-slate-800 text-lg">Completed Today</h4>
+                                        <p className="text-xs font-bold text-slate-500 mt-0.5">{todayLoading ? 'Loading…' : todayList.length + ' item' + (todayList.length === 1 ? '' : 's') + ' finished'}</p>
+                                    </div>
+                                    <button onClick={() => setTodayOpen(false)} aria-label="Close" className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-black transition-all">✕</button>
+                                </div>
+                                <div className="p-4 md:p-6 max-h-[50vh] overflow-y-auto thin-scrollbar">
+                                    {todayLoading ? (
+                                        <p className="p-6 text-center font-bold text-slate-500 text-sm">Loading today’s work…</p>
+                                    ) : todayError ? (
+                                        <div className="p-6 text-center">
+                                            <p className="font-bold text-red-600 text-sm mb-4">{todayError}</p>
+                                            <button onClick={() => window.location.href = 'login.html'} className="bg-primary-800 hover:bg-primary-900 text-white text-sm font-extrabold px-6 py-3 rounded-xl shadow-md transition-all">Go to Sign in</button>
+                                        </div>
+                                    ) : todayList.length === 0 ? (
+                                        <p className="p-6 text-center font-bold text-slate-500 text-sm">Nothing completed yet today — work in progress will appear here once finished.</p>
+                                    ) : todayList.map((w) => (
+                                        <div key={w.key} className="flex items-center gap-3 py-3 border-b border-slate-100 last:border-0">
+                                            <div className={`text-[0.6rem] font-black uppercase tracking-widest px-2 py-1 rounded-md ${w.kind === 'Inspection' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>{w.kind}</div>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-extrabold text-slate-800 text-sm truncate">{w.title}</p>
+                                                <p className="text-xs font-semibold text-slate-500 truncate">{w.sub}</p>
+                                            </div>
+                                            <span className="text-xs font-extrabold text-slate-400 whitespace-nowrap">{w.time}</span>
                                         </div>
                                     ))}
                                 </div>
