@@ -399,40 +399,63 @@
             const [volMenuOpen, setVolMenuOpen] = useState(false);
             const [allInsp, setAllInsp] = useState([]);
 
-            // Live metric counts on entry (mock numbers stay until loaded).
-            useEffect(() => {
-                let stop = false;
-                (async () => {
-                    try {
-                        const t = localStorage.getItem('gw_token');
-                        if (!t) return;
-                        const get = async (p) => {
-                            const r = await fetch(p, { headers: { Authorization: 'Bearer ' + t } });
-                            if (!r.ok) return null;
-                            return r.json();
+            const [allAnom, setAllAnom] = useState([]);
+            const [feedTick, setFeedTick] = useState(0);
+
+            const timeAgo = (iso) => {
+                try {
+                    const ms = Date.now() - new Date(iso).getTime();
+                    if (isNaN(ms) || ms < 0) return '';
+                    const s = Math.floor(ms / 1000);
+                    if (s < 60) return 'Just now';
+                    const m = Math.floor(s / 60);
+                    if (m < 60) return m + (m === 1 ? ' min ago' : ' mins ago');
+                    const h = Math.floor(m / 60);
+                    if (h < 24) return h + (h === 1 ? ' hour ago' : ' hours ago');
+                    const d = Math.floor(h / 24);
+                    return d + (d === 1 ? ' day ago' : ' days ago');
+                } catch (e) { return ''; }
+            };
+
+            // Live dashboard data: metrics, alerts, activity (mock numbers stay until loaded).
+            const loadDashboard = async () => {
+                try {
+                    const t = localStorage.getItem('gw_token');
+                    if (!t) return;
+                    const get = async (p) => {
+                        const r = await fetch(p, { headers: { Authorization: 'Bearer ' + t } });
+                        if (!r.ok) return null;
+                        return r.json();
+                    };
+                    const [iR, aR, uR, pR, nR] = await Promise.all([get('/inspections'), get('/anomalies?limit=100'), get('/users?limit=100'), get('/projects?limit=100'), get('/institutes?limit=100')]);
+                    const arr = (x) => (Array.isArray(x) ? x : ((x && x.data) || []));
+                    if (iR) {
+                        const insp = arr(iR);
+                        setAllInsp(insp);
+                        const now = new Date();
+                        const isToday = (iso) => {
+                            try {
+                                const d = new Date(iso);
+                                return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+                            } catch (e) { return false; }
                         };
-                        const [iR, aR, uR] = await Promise.all([get('/inspections'), get('/anomalies?limit=100'), get('/users?limit=100')]);
-                        if (stop) return;
-                        const arr = (x) => (Array.isArray(x) ? x : ((x && x.data) || []));
-                        if (iR) {
-                            const insp = arr(iR);
-                            setAllInsp(insp);
-                            const now = new Date();
-                            const isToday = (iso) => {
-                                try {
-                                    const d = new Date(iso);
-                                    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-                                } catch (e) { return false; }
-                            };
-                            setPendingCount(insp.filter((s) => s.status === 'SCHEDULED' && !s.assignedOfficerId).length);
-                            setCompletedCount(insp.filter((s) => s.completedAt && isToday(s.completedAt)).length);
-                        }
-                        if (aR) setAnomaliesCount(arr(aR).filter((a) => a.status === 'DETECTED' || a.status === 'INVESTIGATING').length);
-                        if (uR) setOfficerCount(arr(uR).filter((u) => (u.role === 'PMU_OFFICER' || u.role === 'NGO_MANAGER' || u.role === 'NGO_DATA_SUBMITTER') && (!u.status || u.status === 'ACTIVE')).length);
-                    } catch (e) {}
-                })();
-                return () => { stop = true; };
-            }, []);
+                        setPendingCount(insp.filter((s) => s.status === 'SCHEDULED' && !s.assignedOfficerId).length);
+                        setCompletedCount(insp.filter((s) => s.completedAt && isToday(s.completedAt)).length);
+                    }
+                    if (aR) {
+                        const an = arr(aR);
+                        setAllAnom(an);
+                        setAnomaliesCount(an.filter((a) => a.status === 'DETECTED' || a.status === 'INVESTIGATING').length);
+                    }
+                    if (uR) setOfficerCount(arr(uR).filter((u) => (u.role === 'PMU_OFFICER' || u.role === 'NGO_MANAGER' || u.role === 'NGO_DATA_SUBMITTER') && (!u.status || u.status === 'ACTIVE')).length);
+                    if (pR) setAllProj(arr(pR));
+                    if (nR) setAllInst(arr(nR));
+                } catch (e) {}
+            };
+
+            useEffect(() => { loadDashboard(); }, [feedTick]);
+            const [allProj, setAllProj] = useState([]);
+            const [allInst, setAllInst] = useState([]);
             const [mapFacility, setMapFacility] = useState(null);
             const [todayOpen, setTodayOpen] = useState(false);
             const [todayList, setTodayList] = useState([]);
@@ -581,25 +604,6 @@
                 { id: '6', name: 'Roshan Aangan', city: 'Vasant Kunj', dist: '8.5 km away', score: 95, iconColor: 'bg-teal-500', typeIcon: <Icons.Building />, status: 'Compliant' },
             ];
 
-            const liveFeed = [
-                { id: 1, time: 'Just now', text: 'Insp. Sharma verified location for Asha Kiran.', icon: <Icons.MapPin />, color: 'text-blue-500', bg: 'bg-blue-50' },
-                { id: 2, time: '5 mins ago', text: 'AI flagged headcount anomaly at Hostel #12.', icon: <Icons.Alert />, color: 'text-amber-500', bg: 'bg-amber-50' },
-                { id: 3, time: '12 mins ago', text: 'Insp. Kapoor uploaded 4 evidence photos.', icon: <Icons.CameraIcon />, color: 'text-primary-500', bg: 'bg-primary-50' },
-                { id: 4, time: '28 mins ago', text: 'Critical safety issue resolved at Nav Jeevan.', icon: <Icons.CheckCircleSolid />, color: 'text-teal-500', bg: 'bg-teal-50' },
-                { id: 5, time: '45 mins ago', text: 'Insp. Verma submitted official inspection report.', icon: <Icons.DocumentIcon />, color: 'text-emerald-500', bg: 'bg-emerald-50' },
-                { id: 6, time: '1 hr ago', text: 'New inspection schedule generated for West Dist.', icon: <Icons.Calendar />, color: 'text-purple-500', bg: 'bg-purple-50' },
-                { id: 7, time: '2 hrs ago', text: 'Insp. Singh started inspection at Sankalp Home.', icon: <Icons.Activity />, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-                { id: 8, time: '3 hrs ago', text: 'CCTV feed successfully restored at Roshan Aangan.', icon: <Icons.CCTV />, color: 'text-slate-600', bg: 'bg-slate-100' },
-            ];
-
-            const mockAlerts = [
-                { id: 1, title: 'CCTV Offline Detected', time: '10 mins ago', severity: 'High' },
-                { id: 2, title: 'Headcount Discrepancy', time: '1 hour ago', severity: 'Medium' },
-                { id: 3, title: 'Unusual Night Movement', time: '3 hours ago', severity: 'Medium' },
-                { id: 4, title: 'Staff Absenteeism Logged', time: '4 hours ago', severity: 'Low' },
-                { id: 5, title: 'Missing Verification Docs', time: 'Yesterday', severity: 'High' },
-            ];
-
             const normalizedSearchQuery = searchQuery.trim().toLowerCase();
             const searchResults = normalizedSearchQuery
                 ? mockNearbyList.filter((item) => `${item.name} ${item.city} ${item.dist}`.toLowerCase().includes(normalizedSearchQuery))
@@ -616,6 +620,56 @@
                 if (filter === 'Geo-tagged') return kmOf(item.dist) <= 5;
                 return true;
             });
+
+            // Priority Alerts: live open anomalies, most severe first.
+            const sevRank = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+            const sevBar = (sev) => (sev === 'CRITICAL' ? 'bg-red-500' : sev === 'HIGH' ? 'bg-amber-500' : 'bg-blue-400');
+            const priorityAlerts = allAnom
+                .filter((a) => a.status === 'DETECTED' || a.status === 'INVESTIGATING')
+                .sort((a, b) => ((sevRank[a.severity] ?? 9) - (sevRank[b.severity] ?? 9)) || (new Date(b.detectedAt) - new Date(a.detectedAt)))
+                .slice(0, 5);
+
+            // Live Field Activity: newest anomalies + inspection events, merged.
+            const activityFeed = (() => {
+                const projById = {};
+                allProj.forEach((p) => { projById[p.id] = p; });
+                const instById = {};
+                allInst.forEach((i) => { instById[i.id] = i; });
+                const placeOf = (pid) => {
+                    const p = projById[pid] || {};
+                    const inst = instById[p.instituteNgoId] || {};
+                    return inst.name || p.title || '';
+                };
+                const items = [];
+                allAnom.slice(0, 20).forEach((a) => {
+                    if (!a.detectedAt) return;
+                    items.push({
+                        key: 'a-' + a.id,
+                        ts: new Date(a.detectedAt).getTime(),
+                        icon: 'alert',
+                        color: a.severity === 'CRITICAL' ? 'text-red-500' : 'text-amber-500',
+                        bg: a.severity === 'CRITICAL' ? 'bg-red-50' : 'bg-amber-50',
+                        text: a.title || a.anomalyType,
+                        time: timeAgo(a.detectedAt),
+                    });
+                });
+                allInsp.slice(0, 20).forEach((s) => {
+                    const stamp = s.updatedAt || s.createdAt;
+                    if (!stamp) return;
+                    const where = placeOf(s.projectId);
+                    const verb = s.status === 'IN_PROGRESS' ? 'started' : s.status === 'SCHEDULED' ? 'scheduled' : 'updated';
+                    items.push({
+                        key: 'i-' + s.id,
+                        ts: new Date(stamp).getTime(),
+                        icon: s.status === 'IN_PROGRESS' ? 'activity' : 'map',
+                        color: s.status === 'IN_PROGRESS' ? 'text-indigo-500' : 'text-blue-500',
+                        bg: s.status === 'IN_PROGRESS' ? 'bg-indigo-50' : 'bg-blue-50',
+                        text: 'Inspection ' + verb + (where ? ' for ' + where + '.' : '.'),
+                        time: timeAgo(stamp),
+                    });
+                });
+                return items.sort((a, b) => b.ts - a.ts).slice(0, 8);
+            })();
 
             // Inspection volume buckets, computed from real inspection dates.
             const buildVolume = (list, range) => {
@@ -861,16 +915,19 @@
                                             <h3 className="text-xl font-extrabold text-slate-800 flex items-center gap-2 tracking-tight">
                                                 Priority Alerts <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
                                             </h3>
-                                            <button className="text-primary-700 font-bold text-sm hover:underline">View All</button>
+                                            <button onClick={() => window.location.href = 'ai_anomaly.html'} className="text-primary-700 font-bold text-sm hover:underline">View All</button>
                                         </div>
                                         <div className="space-y-3 flex-1 overflow-y-auto pr-2 thin-scrollbar max-h-[350px]">
-                                            {mockAlerts.map(alert => (
-                                                <div key={alert.id} className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer group hover:border-slate-200">
+                                            {priorityAlerts.length === 0 && (
+                                                <div className="p-6 text-center font-bold text-slate-500 text-sm">No open alerts right now.</div>
+                                            )}
+                                            {priorityAlerts.map(alert => (
+                                                <div key={alert.id} onClick={() => window.location.href = 'ai_anomaly.html'} className="flex items-center justify-between p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition cursor-pointer group hover:border-slate-200">
                                                     <div className="flex items-center gap-4">
-                                                        <div className={`w-2.5 h-12 rounded-full shadow-inner ${alert.severity === 'High' ? 'bg-red-500' : alert.severity === 'Medium' ? 'bg-amber-500' : 'bg-blue-400'}`}></div>
+                                                        <div className={`w-2.5 h-12 rounded-full shadow-inner ${sevBar(alert.severity)}`}></div>
                                                         <div>
                                                             <h4 className="font-extrabold text-slate-800 text-[0.9rem] group-hover:text-primary-700 transition">{alert.title}</h4>
-                                                            <p className="text-xs text-slate-500 font-semibold mt-1">{alert.time}</p>
+                                                            <p className="text-xs text-slate-500 font-semibold mt-1">{timeAgo(alert.detectedAt)}</p>
                                                         </div>
                                                     </div>
                                                     <div className="text-slate-300 group-hover:text-primary-700 transition">
@@ -886,14 +943,17 @@
                                             <h3 className="text-xl font-extrabold text-slate-800 flex items-center gap-2.5 tracking-tight">
                                                 <span className="text-primary-700"><Icons.ActivityFeed /></span> Live Field Activity
                                             </h3>
-                                            <button className="text-slate-400 hover:text-slate-600 transition"><Icons.Refresh /></button>
+                                            <button onClick={() => setFeedTick((t) => t + 1)} title="Refresh feed" className="text-slate-400 hover:text-slate-600 transition"><Icons.Refresh /></button>
                                         </div>
                                         <div className="space-y-5 flex-1 overflow-y-auto pr-3 thin-scrollbar max-h-[350px]">
-                                            {liveFeed.map((item, i) => (
-                                                <div key={item.id} className="flex items-start gap-4 group cursor-pointer relative">
-                                                    {i !== liveFeed.length - 1 && <div className="absolute top-10 left-[1.15rem] bottom-[-1.25rem] w-[2px] bg-slate-100 rounded-full"></div>}
+                                            {activityFeed.length === 0 && (
+                                                <div className="p-6 text-center font-bold text-slate-500 text-sm">No recent activity yet.</div>
+                                            )}
+                                            {activityFeed.map((item, i) => (
+                                                <div key={item.key} className="flex items-start gap-4 group cursor-pointer relative">
+                                                    {i !== activityFeed.length - 1 && <div className="absolute top-10 left-[1.15rem] bottom-[-1.25rem] w-[2px] bg-slate-100 rounded-full"></div>}
                                                     <div className={`w-10 h-10 rounded-full ${item.bg} ${item.color} flex items-center justify-center border-2 border-white shadow-sm relative z-10 group-hover:scale-110 transition-transform`}>
-                                                        {item.icon}
+                                                        {item.icon === 'alert' ? <Icons.Alert /> : item.icon === 'activity' ? <Icons.Activity /> : <Icons.MapPin />}
                                                     </div>
                                                     <div className="pt-2 flex-1 pb-1">
                                                         <p className="text-[0.9rem] font-bold text-slate-700 group-hover:text-primary-800 transition leading-snug">{item.text}</p>
