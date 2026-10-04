@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "in.govwatch.app",
+      "sha256_cert_fingerprints": [
+        "11:36:25:A8:AA:C0:85:14:A0:D2:D1:DD:E8:8E:D0:10:1B:03:51:2F:16:8F:0C:5D:FD:85:57:51:E7:64:DB:2B"
+      ]
+    }
+  }
+]
