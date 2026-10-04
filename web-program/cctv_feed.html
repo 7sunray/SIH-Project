@@ -245,6 +245,24 @@
             const [activeFeed, setActiveFeed] = useState(null);
             const [settingsFeed, setSettingsFeed] = useState(null);
             const [feedPrefs, setFeedPrefs] = useState(() => { try { return JSON.parse(localStorage.getItem('gw_cctv_prefs') || '{}'); } catch (e) { return {}; } });
+            const viewerVideoRef = useRef(null);
+
+            const captureFrame = () => {
+                const v = viewerVideoRef.current;
+                if (!v || !v.videoWidth) return;
+                try {
+                    const c = document.createElement('canvas');
+                    c.width = v.videoWidth;
+                    c.height = v.videoHeight;
+                    c.getContext('2d').drawImage(v, 0, 0);
+                    const a = document.createElement('a');
+                    a.href = c.toDataURL('image/jpeg', 0.85);
+                    a.download = (activeFeed ? activeFeed.id : 'feed') + '-' + Date.now() + '.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } catch (e) {}
+            };
 
             const togglePref = (feedId, key) => {
                 setFeedPrefs((prev) => {
@@ -299,7 +317,8 @@
                 { 
                     id: 'CAM-04', type: 'AI Flagged', title: 'Dining hall', loc: 'Rukmini Shelter Home for Women', 
                     statusColor: 'bg-red-500', statusText: 'text-red-600', subBadge: 'Meal service active',
-                    time: '10:42 IST', img: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80' 
+                    time: '10:42 IST', img: 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80',
+                    kind: 'video', video: 'dining-hall.mp4'
                 }
             ];
 
@@ -369,8 +388,12 @@
                                 <div key={feed.id} className={`bg-white rounded-[1.5rem] p-4 custom-shadow border border-slate-100 flex flex-col group hover:shadow-xl transition-all duration-300 stagger-${(idx % 4) + 1} animate-slide-up cursor-pointer`}>
                                     
                                     {/* Video Thumbnail Area */}
-                                    <div className="h-48 w-full relative overflow-hidden rounded-[1rem] bg-slate-900 mb-4">
-                                        <img src={feed.img} alt={feed.title} className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-700" />
+                                    <div onClick={() => setActiveFeed(feed)} className="h-48 w-full relative overflow-hidden rounded-[1rem] bg-slate-900 mb-4 cursor-pointer">
+                                        {feed.kind === 'video' ? (
+                                            <video src={feed.video} className="w-full h-full object-cover opacity-85" preload="metadata" muted playsInline />
+                                        ) : (
+                                            <img src={feed.img} alt={feed.title} className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition-transform duration-700" />
+                                        )}
                                         
                                         {/* Overlays */}
                                         <div className={`absolute top-3 left-3 text-white px-2.5 py-1 rounded-lg text-[0.65rem] font-black tracking-widest uppercase flex items-center gap-2 shadow-md backdrop-blur-md ${feed.type === 'Live' ? 'bg-emerald-500/90' : 'bg-red-500/90'}`}>
@@ -455,7 +478,11 @@
                         <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8" onClick={() => setActiveFeed(null)}>
                             <div className="bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
                                 <div className="relative bg-slate-900">
-                                    <img src={activeFeed.img} alt={activeFeed.title} className="w-full max-h-[55vh] object-cover" />
+                                    {activeFeed.kind === 'video' ? (
+                                        <video ref={viewerVideoRef} src={activeFeed.video} className="w-full max-h-[55vh]" controls autoPlay playsInline />
+                                    ) : (
+                                        <img src={activeFeed.img} alt={activeFeed.title} className="w-full max-h-[55vh] object-cover" />
+                                    )}
                                     <div className={`absolute top-4 left-4 text-white px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase flex items-center gap-2 shadow-md ${activeFeed.type === 'Live' ? 'bg-emerald-500/90' : 'bg-red-500/90'}`}>
                                         <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div> {activeFeed.type}
                                     </div>
@@ -465,7 +492,7 @@
                                     <h4 className="font-extrabold text-slate-800 text-xl">{activeFeed.title}</h4>
                                     <p className="text-sm font-semibold text-slate-500 mt-1">{activeFeed.loc} · {activeFeed.id}</p>
                                     <div className="flex flex-wrap gap-2 mt-4">
-                                        <button onClick={() => snapshotFeed(activeFeed)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-primary-800 border border-primary-200 hover:bg-primary-50 transition-all">Take Snapshot</button>
+                                        <button onClick={() => { if (activeFeed.kind === 'video') captureFrame(); else snapshotFeed(activeFeed); }} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-primary-800 border border-primary-200 hover:bg-primary-50 transition-all">Take Snapshot</button>
                                         <button onClick={() => window.location.href = 'video_verification.html'} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-primary-800 border border-primary-200 hover:bg-primary-50 transition-all">Open Video Verification</button>
                                         <button onClick={() => setActiveFeed(null)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-white bg-primary-800 hover:bg-primary-900 transition-all">Close</button>
                                     </div>
