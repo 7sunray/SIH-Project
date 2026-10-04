@@ -480,7 +480,7 @@
                             <div className="bg-white rounded-3xl overflow-hidden max-w-3xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
                                 <div className="relative bg-slate-900">
                                     {activeFeed.kind === 'video' ? (
-                                        <video ref={viewerVideoRef} src={activeFeed.video} className="w-full max-h-[55vh]" controls autoPlay playsInline />
+                                        <video ref={viewerVideoRef} src={activeFeed.video} className="w-full max-h-[55vh]" controls autoPlay loop muted playsInline />
                                     ) : (
                                         <img src={activeFeed.img} alt={activeFeed.title} className="w-full max-h-[55vh] object-cover" />
                                     )}
