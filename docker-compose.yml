@@ -1,0 +1,62 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: dosje_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  redis:
+    image: redis:7-alpine
+    ports:
+      # NOTE: if a local Redis already occupies 6379, use "6380:6379"
+      # and set REDIS_PORT=6380 on api/worker below.
+      - "6379:6379"
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+  api:
+    build: .
+    # Survives boot-order races (plain depends_on only orders startup).
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@postgres:5432/dosje_db
+      REDIS_HOST: redis
+      # Container redis listens on 6379 (app default is 6380 for local dev).
+      REDIS_PORT: 6379
+      # Required: EncryptionService throws at startup without a 32-byte key.
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      S3_ENDPOINT: http://minio:9000
+    depends_on:
+      - postgres
+      - redis
+      - minio
+  worker:
+    build: .
+    restart: unless-stopped
+    command: node dist/worker-main.js
+    environment:
+      DATABASE_URL: postgresql://postgres:${DB_PASSWORD}@postgres:5432/dosje_db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+    depends_on:
+      - postgres
+      - redis
+volumes:
+  pgdata:
+  miniodata:

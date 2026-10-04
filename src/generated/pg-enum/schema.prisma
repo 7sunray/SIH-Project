@@ -1,0 +1,521 @@
+// prisma/schema.prisma
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions", "fullTextSearch"]
+}
+
+generator enumPg {
+  provider = "prisma-client-js"
+  output   = "../src/generated/pg-enum"
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [postgis]
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  DOSJE_SUPER_ADMIN
+  DOSJE_ADMIN
+  PMU_OFFICER
+  NGO_MANAGER
+  NGO_DATA_SUBMITTER
+  BENEFICIARY
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum ProjectStatus {
+  PLANNED
+  IN_PROGRESS
+  UNDER_INSPECTION
+  COMPLETED
+  SUSPENDED
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  REPORT_SUBMITTED
+  REPORT_UNDER_REVIEW
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum ReportMediaType {
+  PHOTO
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum AnomalyType {
+  UNEXPECTED_ABSENCE
+  FACILITY_DEVIATION
+  BENEFICIARY_COUNT_MISMATCH
+  MEDIA_TAMPER_DETECTED
+  GEO_FENCE_VIOLATION
+  CCTV_FEED_INTERRUPTED
+  FINANCIAL_IRREGULARITY
+  OTHER
+}
+
+enum AnomalySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AnomalyStatus {
+  DETECTED
+  INVESTIGATING
+  RESOLVED
+  FALSE_POSITIVE
+  ESCALATED
+}
+
+enum CCTVStatus {
+  ONLINE
+  OFFLINE
+  DEGRADED
+  MAINTENANCE
+}
+
+enum StreamingProtocol {
+  RTSP
+  HLS
+  WEBRTC
+  ONVIF
+}
+
+enum VCSessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  MISSED
+  CANCELLED
+}
+
+enum NotificationType {
+  INSPECTION_ASSIGNED
+  INSPECTION_DUE
+  REPORT_FLAGGED
+  ANOMALY_DETECTED
+  VC_SCHEDULED
+  SYSTEM_ANNOUNCEMENT
+}
+
+enum DataClassification {
+  PUBLIC
+  INTERNAL
+  CONFIDENTIAL
+  RESTRICTED
+}
+
+// ─────────────────────────────────────────────
+// CORE TABLES
+// ─────────────────────────────────────────────
+
+model User {
+  id                String     @id @default(uuid()) @db.Uuid
+  email             String     @unique @db.VarChar(255)
+  phone             String?    @unique @db.VarChar(15)
+  passwordHash      String     @db.VarChar(255)
+  firstName         String     @db.VarChar(100)
+  lastName          String     @db.VarChar(100)
+  role              Role
+  status            UserStatus @default(PENDING_VERIFICATION)
+  avatarUrl         String?    @db.VarChar(512)
+  departmentCode    String?    @db.VarChar(50)
+  employeeId        String?    @unique @db.VarChar(50)
+  jurisdictionState String?    @db.VarChar(100)
+  jurisdictionDist  String?    @db.VarChar(100)
+  lastLoginAt       DateTime?  @db.Timestamptz
+  lastLoginIp       String?    @db.VarChar(45)
+  failedLoginCount  Int        @default(0)
+  lockoutUntil      DateTime?  @db.Timestamptz
+  totpSecret        String?    @db.VarChar(255) // AES-256 encrypted
+  totpEnabled       Boolean    @default(false)
+  createdAt         DateTime   @default(now()) @db.Timestamptz
+  updatedAt         DateTime   @updatedAt @db.Timestamptz
+  deletedAt         DateTime?  @db.Timestamptz
+
+  // Relations
+  managedNgo          InstituteNgo?      @relation("NgoManager")
+  ngoStaff            InstituteNgo?      @relation("NgoStaff")
+  assignedInspections Inspection[]       @relation("AssignedOfficer")
+  submittedReports    InspectionReport[] @relation("SubmittedBy")
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+  refreshTokens       RefreshToken[]
+  vcParticipants      VCParticipant[]
+  anomaliesCreated    AnomalyAlert[]     @relation("CreatedBy")
+  anomaliesAssigned   AnomalyAlert[]     @relation("AssignedTo")
+
+  @@index([role, status])
+  @@index([jurisdictionState, jurisdictionDist])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  tokenHash String    @unique @db.VarChar(255) // SHA-256 of the raw refresh token
+  userAgent String?   @db.VarChar(512)
+  ipAddress String?   @db.VarChar(45)
+  expiresAt DateTime  @db.Timestamptz
+  rotatedAt DateTime? @db.Timestamptz
+  revokedAt DateTime? @db.Timestamptz
+  createdAt DateTime  @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model InstituteNgo {
+  id               String                              @id @default(uuid()) @db.Uuid
+  name             String                              @db.VarChar(255)
+  registrationNo   String                              @unique @db.VarChar(50)
+  type             String                              @db.VarChar(50) // NGO, INSTITUTE, SHelter_Home
+  contactEmail     String                              @db.VarChar(255)
+  contactPhone     String                              @db.VarChar(15)
+  addressLine1     String                              @db.VarChar(500)
+  addressLine2     String?                             @db.VarChar(500)
+  state            String                              @db.VarChar(100)
+  district         String                              @db.VarChar(100)
+  pinCode          String                              @db.VarChar(10)
+  // PostGIS point: stored as raw geometry, exposed via Prisma raw query or custom scalar
+  location         Unsupported("geometry(Point,4326)")
+  gstNumber        String?                             @db.VarChar(20)
+  panNumber        String?                             @db.VarChar(10)
+  annualBudget     Decimal?                            @db.Decimal(15, 2)
+  status           UserStatus                          @default(ACTIVE)
+  accreditationDoc String?                             @db.VarChar(512) // S3 key
+  createdAt        DateTime                            @default(now()) @db.Timestamptz
+  updatedAt        DateTime                            @updatedAt @db.Timestamptz
+  deletedAt        DateTime?                           @db.Timestamptz
+
+  // Relations
+  managerId String?        @unique @db.Uuid
+  manager   User?          @relation("NgoManager", fields: [managerId], references: [id])
+  staffId   String?        @unique @db.Uuid
+  staffUser User?          @relation("NgoStaff", fields: [staffId], references: [id])
+  cctvFeeds CCTVFeed[]
+  anomalies AnomalyAlert[]
+  projects  Project[]
+
+  @@index([state, district])
+  @@map("institute_ngos")
+}
+
+model Project {
+  id                String                              @id @default(uuid()) @db.Uuid
+  title             String                              @db.VarChar(255)
+  description       String?                             @db.Text
+  schemeCode        String                              @db.VarChar(50) // Government scheme identifier
+  instituteNgoId    String                              @db.Uuid
+  status            ProjectStatus                       @default(PLANNED)
+  sanctionedAmount  Decimal?                            @db.Decimal(15, 2)
+  utilizationAmount Decimal?                            @db.Decimal(15, 2)
+  sanctionedDate    DateTime?                           @db.Timestamptz
+  startDate         DateTime?                           @db.Timestamptz
+  expectedEndDate   DateTime?                           @db.Timestamptz
+  actualEndDate     DateTime?                           @db.Timestamptz
+  // PostGIS geometry for project location
+  location          Unsupported("geometry(Point,4326)")
+  radiusMeters      Int                                 @default(500) // geo-fence radius
+  beneficiaryCount  Int                                 @default(0)
+  createdAt         DateTime                            @default(now()) @db.Timestamptz
+  updatedAt         DateTime                            @updatedAt @db.Timestamptz
+  deletedAt         DateTime?                           @db.Timestamptz
+
+  instituteNgo  InstituteNgo   @relation(fields: [instituteNgoId], references: [id])
+  inspections   Inspection[]
+  cctvFeeds     CCTVFeed[]
+  anomalyAlerts AnomalyAlert[]
+
+  @@index([instituteNgoId])
+  @@index([status])
+  @@map("projects")
+}
+
+model CCTVFeed {
+  id                     String            @id @default(uuid()) @db.Uuid
+  projectId              String            @db.Uuid
+  instituteNgoId         String            @db.Uuid
+  name                   String            @db.VarChar(100)
+  rtspUrl                String            @db.VarChar(1024) // Encrypted at rest
+  streamProtocol         StreamingProtocol @default(RTSP)
+  status                 CCTVStatus        @default(OFFLINE)
+  lastHealthCheckAt      DateTime?         @db.Timestamptz
+  healthCheckIntervalSec Int               @default(30)
+  fps                    Int               @default(25)
+  resolution             String            @db.VarChar(20) // "1920x1080"
+  storageRetentionDays   Int               @default(30)
+  webRtcEndpoint         String?           @db.VarChar(512)
+  installDate            DateTime?         @db.Timestamptz
+  lastMaintenanceAt      DateTime?         @db.Timestamptz
+  ipAddress              String?           @db.VarChar(45)
+  macAddress             String?           @db.VarChar(17)
+  firmwareVersion        String?           @db.VarChar(50)
+  createdAt              DateTime          @default(now()) @db.Timestamptz
+  updatedAt              DateTime          @updatedAt @db.Timestamptz
+
+  project      Project        @relation(fields: [projectId], references: [id])
+  instituteNgo InstituteNgo   @relation(fields: [instituteNgoId], references: [id])
+  anomalies    AnomalyAlert[]
+
+  @@index([projectId])
+  @@index([status])
+  @@map("cctv_feeds")
+}
+
+model Inspection {
+  id                 String           @id @default(uuid()) @db.Uuid
+  projectId          String           @db.Uuid
+  assignedOfficerId  String           @db.Uuid
+  status             InspectionStatus @default(SCHEDULED)
+  scheduledDate      DateTime         @db.Timestamptz
+  scheduledTimeSlot  String?          @db.VarChar(50) // "09:00-12:00"
+  startedAt          DateTime?        @db.Timestamptz
+  completedAt        DateTime?        @db.Timestamptz
+  isRandomAssignment Boolean          @default(true)
+  assignmentBatchId  String?          @db.Uuid // groups random assignment cycles
+  notes              String?          @db.Text
+  createdAt          DateTime         @default(now()) @db.Timestamptz
+  updatedAt          DateTime         @updatedAt @db.Timestamptz
+
+  project         Project            @relation(fields: [projectId], references: [id])
+  assignedOfficer User               @relation("AssignedOfficer", fields: [assignedOfficerId], references: [id])
+  reports         InspectionReport[]
+  vcSessions      VCSession[]
+
+  @@index([assignedOfficerId, status])
+  @@index([projectId, status])
+  @@index([scheduledDate])
+  @@map("inspections")
+}
+
+model InspectionReport {
+  id                String                              @id @default(uuid()) @db.Uuid
+  inspectionId      String                              @db.Uuid
+  submittedById     String                              @db.Uuid
+  // Report geo-tag: where the officer was when submitting
+  submitLocation    Unsupported("geometry(Point,4326)")
+  // Whether geo-tag falls within the target project radius
+  geoFenceValid     Boolean
+  // Officer's reported accuracy in meters
+  locationAccuracyM Decimal?                            @db.Decimal(10, 2)
+  narrativeNotes    String?                             @db.Text
+  inspectionSummary String?                             @db.Text
+  // Overall verdict
+  conformsToScheme  Boolean?
+  // Device info for audit
+  deviceModel       String?                             @db.VarChar(200)
+  deviceOs          String?                             @db.VarChar(100)
+  appVersion        String?                             @db.VarChar(20)
+  submittedAt       DateTime                            @default(now()) @db.Timestamptz
+  serverReceivedAt  DateTime                            @default(now()) @db.Timestamptz
+  createdAt         DateTime                            @default(now()) @db.Timestamptz
+  updatedAt         DateTime                            @updatedAt @db.Timestamptz
+
+  inspection      Inspection       @relation(fields: [inspectionId], references: [id])
+  submittedBy     User             @relation("SubmittedBy", fields: [submittedById], references: [id])
+  mediaItems      ReportMedia[]
+  exifValidations EXIFValidation[]
+
+  @@index([inspectionId])
+  @@index([submittedAt])
+  @@map("inspection_reports")
+}
+
+model ReportMedia {
+  id               String                              @id @default(uuid()) @db.Uuid
+  reportId         String                              @db.Uuid
+  mediaType        ReportMediaType
+  s3Key            String                              @db.VarChar(1024)
+  originalFileName String                              @db.VarChar(255)
+  fileSizeBytes    BigInt
+  mimeType         String                              @db.VarChar(100)
+  // Media capture geo-tag (may differ from report submit location)
+  mediaLocation    Unsupported("geometry(Point,4326)")
+  capturedAt       DateTime                            @db.Timestamptz
+  // EXIF metadata extracted and stored
+  exifData         Json? // { make, model, gps, timestamp, orientation }
+  // Tamper detection hash (SHA-256 of file bytes)
+  contentHash      String                              @db.VarChar(64)
+  isVerified       Boolean                             @default(false)
+  verificationNote String?                             @db.VarChar(500)
+  createdAt        DateTime                            @default(now()) @db.Timestamptz
+
+  report         InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  exifValidation EXIFValidation?
+
+  @@index([reportId])
+  @@map("report_media")
+}
+
+model EXIFValidation {
+  id               String   @id @default(uuid()) @db.Uuid
+  mediaId          String   @unique @db.Uuid
+  // EXIF timestamp vs server received time
+  timestampDeltaMs Int // difference in milliseconds
+  timestampValid   Boolean
+  // EXIF GPS vs officer submit GPS
+  gpsDeltaMeters   Decimal  @db.Decimal(10, 2)
+  gpsValid         Boolean
+  // Device consistency
+  deviceConsistent Boolean // same device as report metadata
+  // Overall pass/fail
+  allChecksPassed  Boolean
+  rawExifSnapshot  Json // full EXIF dump for audit
+  validatedAt      DateTime @default(now()) @db.Timestamptz
+
+  media              ReportMedia       @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  inspectionReportId String?           @db.Uuid
+  inspectionReport   InspectionReport? @relation(fields: [inspectionReportId], references: [id])
+
+  @@map("exif_validations")
+}
+
+model VCSession {
+  id              String          @id @default(uuid()) @db.Uuid
+  inspectionId    String?         @db.Uuid
+  roomId          String          @unique @db.VarChar(100) // WebRTC room ID
+  roomToken       String          @db.VarChar(512) // Encrypted
+  status          VCSessionStatus @default(SCHEDULED)
+  scheduledAt     DateTime        @db.Timestamptz
+  startedAt       DateTime?       @db.Timestamptz
+  endedAt         DateTime?       @db.Timestamptz
+  durationSeconds Int?
+  // Janus session/handle IDs for monitoring
+  janusSessionId  BigInt?
+  janusHandleId   BigInt?
+  recordingPath   String?         @db.VarChar(512) // S3 key of recording
+  createdAt       DateTime        @default(now()) @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @db.Timestamptz
+
+  inspection   Inspection?     @relation(fields: [inspectionId], references: [id])
+  participants VCParticipant[]
+
+  @@index([inspectionId])
+  @@index([scheduledAt])
+  @@map("vc_sessions")
+}
+
+model VCParticipant {
+  id                String    @id @default(uuid()) @db.Uuid
+  sessionId         String    @db.Uuid
+  userId            String    @db.Uuid
+  participantToken  String    @db.VarChar(512) // Encrypted
+  joinedAt          DateTime? @db.Timestamptz
+  leftAt            DateTime? @db.Timestamptz
+  connectionQuality String?   @db.VarChar(20) // "excellent","good","poor"
+  createdAt         DateTime  @default(now()) @db.Timestamptz
+
+  session VCSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User      @relation(fields: [userId], references: [id])
+
+  @@unique([sessionId, userId])
+  @@map("vc_participants")
+}
+
+model AnomalyAlert {
+  id              String          @id @default(uuid()) @db.Uuid
+  anomalyType     AnomalyType
+  severity        AnomalySeverity @default(MEDIUM)
+  status          AnomalyStatus   @default(DETECTED)
+  title           String          @db.VarChar(255)
+  description     String          @db.Text
+  source          String          @db.VarChar(100) // "AI_VISION", "GEOFENCE", "CCTV", "MANUAL"
+  // Related entities (polymorphic references)
+  projectId       String?         @db.Uuid
+  instituteNgoId  String?         @db.Uuid
+  inspectionId    String?         @db.Uuid
+  cctvFeedId      String?         @db.Uuid
+  reportMediaId   String?         @db.Uuid
+  // AI confidence score
+  confidenceScore Decimal?        @db.Decimal(5, 4) // 0.0000 to 1.0000
+  evidenceJson    Json? // structured evidence payload
+  detectedAt      DateTime        @default(now()) @db.Timestamptz
+  resolvedAt      DateTime?       @db.Timestamptz
+  resolutionNote  String?         @db.Text
+  createdById     String?         @db.Uuid
+  assignedToId    String?         @db.Uuid
+  createdAt       DateTime        @default(now()) @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @db.Timestamptz
+
+  project      Project?      @relation(fields: [projectId], references: [id])
+  instituteNgo InstituteNgo? @relation(fields: [instituteNgoId], references: [id])
+  cctvFeed     CCTVFeed?     @relation(fields: [cctvFeedId], references: [id])
+  createdBy    User?         @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedTo   User?         @relation("AssignedTo", fields: [assignedToId], references: [id])
+
+  @@index([anomalyType, severity])
+  @@index([status])
+  @@index([projectId])
+  @@map("anomaly_alerts")
+}
+
+model AuditLog {
+  id             String             @id @default(uuid()) @db.Uuid
+  userId         String?            @db.Uuid
+  action         String             @db.VarChar(100) // "USER_LOGIN", "INSPECTION_ASSIGN", etc.
+  entity         String             @db.VarChar(100) // table name
+  entityId       String?            @db.Uuid
+  beforeJson     Json? // previous state
+  afterJson      Json? // new state
+  ipAddress      String?            @db.VarChar(45)
+  userAgent      String?            @db.VarChar(512)
+  classification DataClassification @default(INTERNAL)
+  createdAt      DateTime           @default(now()) @db.Timestamptz
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String           @db.VarChar(255)
+  body      String           @db.Text
+  dataJson  Json? // deep-link payload
+  readAt    DateTime?        @db.Timestamptz
+  sentVia   String[] // ["PUSH","EMAIL","SMS"]
+  createdAt DateTime         @default(now()) @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model SystemConfig {
+  key         String   @id @db.VarChar(100)
+  value       Json
+  description String?  @db.Text
+  updatedBy   String?  @db.Uuid
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  @@map("system_config")
+}
