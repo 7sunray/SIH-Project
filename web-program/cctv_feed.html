@@ -246,6 +246,19 @@
             const [settingsFeed, setSettingsFeed] = useState(null);
             const [feedPrefs, setFeedPrefs] = useState(() => { try { return JSON.parse(localStorage.getItem('gw_cctv_prefs') || '{}'); } catch (e) { return {}; } });
             const viewerVideoRef = useRef(null);
+            const [nowTick, setNowTick] = useState('');
+
+            // Live wall-clock for feed badges (today's date + current time).
+            useEffect(() => {
+                const fmt = () => {
+                    const d = new Date();
+                    const p = (n) => String(n).padStart(2, '0');
+                    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+                };
+                setNowTick(fmt());
+                const t = setInterval(() => setNowTick(fmt()), 1000);
+                return () => clearInterval(t);
+            }, []);
 
             const captureFrame = () => {
                 const v = viewerVideoRef.current;
@@ -402,7 +415,7 @@
                                         </div>
                                         
                                         <div className="absolute top-3 right-3 bg-black/60 text-white px-2.5 py-1 rounded-lg backdrop-blur-md text-[0.65rem] font-bold shadow-md">
-                                            {feed.time}
+                                            {nowTick}
                                         </div>
                                         
                                         <div className="absolute bottom-3 left-3 bg-black/50 text-white p-2 rounded-lg backdrop-blur-md">
@@ -487,7 +500,7 @@
                                     <div className={`absolute top-4 left-4 text-white px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase flex items-center gap-2 shadow-md ${activeFeed.type === 'Live' ? 'bg-emerald-500/90' : 'bg-red-500/90'}`}>
                                         <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div> {activeFeed.type}
                                     </div>
-                                    <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-lg text-xs font-bold">{activeFeed.time}</div>
+                                    <div className="absolute top-4 right-4 bg-black/60 text-white px-3 py-1.5 rounded-lg text-xs font-bold">{nowTick}</div>
                                 </div>
                                 <div className="p-5 md:p-6">
                                     <h4 className="font-extrabold text-slate-800 text-xl">{activeFeed.title}</h4>
