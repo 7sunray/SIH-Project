@@ -239,6 +239,38 @@ async function main() {
     `;
   }
 
+  // Past completed visits (so "last inspection" shows real past dates).
+  const PAST_VISITS = [
+    {
+      id: '12121212-1212-4121-8121-121212121212',
+      projectId: '77777777-7777-4777-8777-777777777777',
+      officerId: '11111111-1111-4111-8111-111111111111',
+      date: '2026-09-14T10:00:00Z',
+      notes: 'Quarterly verification completed. Premises satisfactory.',
+    },
+    {
+      id: '13131313-1313-4131-8131-131313131313',
+      projectId: '88888888-8888-4888-8888-888888888888',
+      officerId: '22222222-2222-4222-8222-222222222222',
+      date: '2026-08-27T10:00:00Z',
+      notes: 'Headcount records verified against register.',
+    },
+    {
+      id: '14141414-1414-4141-8141-141414141414',
+      projectId: '99999999-9999-4999-8999-999999999999',
+      officerId: '33333333-3333-4333-8333-333333333333',
+      date: '2026-09-22T10:00:00Z',
+      notes: 'Facility standards review completed.',
+    },
+  ];
+  for (const v of PAST_VISITS) {
+    await prisma.$executeRaw`
+      INSERT INTO inspections (id, "projectId", "assignedOfficerId", status, "scheduledDate", "startedAt", "completedAt", "isRandomAssignment", notes, "createdAt", "updatedAt")
+      VALUES (${v.id}::uuid, ${v.projectId}::uuid, ${v.officerId}::uuid, 'APPROVED', ${v.date}::timestamptz, ${v.date}::timestamptz, ${v.date}::timestamptz, false, ${v.notes}, NOW(), NOW())
+      ON CONFLICT (id) DO NOTHING;
+    `;
+  }
+
   // Keep coordinates correct even if an older seed run stored wrong points.
   const COORD_FIX = [
     { regNo: 'MSJE/DL/00231', lng: 77.0424, lat: 28.5975 },

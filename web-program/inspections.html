@@ -428,7 +428,14 @@
                     setOfficers(officerList);
 
                     const now = new Date();
-                    const mapped = inspections.map((s) => {
+                    const lastVisitByProject = {};
+                    inspections.forEach((s) => {
+                        if (s.completedAt && ['APPROVED', 'REPORT_SUBMITTED', 'REPORT_UNDER_REVIEW', 'REJECTED'].includes(s.status)) {
+                            const prev = lastVisitByProject[s.projectId];
+                            if (!prev || new Date(s.completedAt) > new Date(prev)) lastVisitByProject[s.projectId] = s.completedAt;
+                        }
+                    });
+                    const mapped = inspections.filter((s) => s.status === 'SCHEDULED').map((s) => {
                         const p = projById[s.projectId] || {};
                         const inst = instById[p.instituteNgoId] || {};
                         const officer = s.assignedOfficerId ? userById[s.assignedOfficerId] : null;
@@ -438,7 +445,8 @@
                         const schedDate = s.scheduledDate ? new Date(s.scheduledDate) : null;
                         const overdue = s.status === 'SCHEDULED' && schedDate && schedDate < now;
                         const priority = risk >= 70 || overdue ? 'High' : risk >= 40 ? 'Medium' : 'Low';
-                        const dateParts = s.scheduledDate ? fmtDateParts(s.scheduledDate) : ['—', '', ''];
+                        const lastVisit = lastVisitByProject[s.projectId];
+                        const dateParts = lastVisit ? fmtDateParts(lastVisit) : ['—', '', ''];
                         return {
                             inspId: s.id,
                             status: s.status,
