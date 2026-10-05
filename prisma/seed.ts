@@ -1,6 +1,8 @@
+import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, Role } from '@prisma/client'; // Import standard package
 import * as bcrypt from 'bcryptjs'; // Required import for bcrypt
+import { EncryptionService } from '../src/common/services/encryption.service';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -380,6 +382,23 @@ async function main() {
       INSERT INTO anomaly_alerts (id, "anomalyType", severity, status, title, description, source, "projectId", "confidenceScore", "detectedAt", "createdAt", "updatedAt")
       VALUES (${a.id}::uuid, ${a.type}, ${a.severity}, 'DETECTED', ${a.title}, ${a.description}, ${a.source},
         ${a.projectId}::uuid, ${a.confidenceScore}, NOW(), NOW(), NOW())
+      ON CONFLICT (id) DO NOTHING;
+    `;
+  }
+
+  // Demo CCTV feeds (RTSP URLs encrypted at rest, like the app does).
+  const encryption = new EncryptionService();
+  const FEEDS = [
+    { id: 'e1111111-1111-4111-8111-111111111111', projectId: '77777777-7777-4777-8777-777777777777', instituteNgoId: '44444444-4444-4444-8444-444444444444', name: 'CAM-01 Main Entrance', url: 'rtsp://cam-rukmini-01.local:554/stream', status: 'ONLINE' },
+    { id: 'e2222222-2222-4222-8222-222222222222', projectId: '77777777-7777-4777-8777-777777777777', instituteNgoId: '44444444-4444-4444-8444-444444444444', name: 'CAM-02 Dormitory', url: 'rtsp://cam-rukmini-02.local:554/stream', status: 'ONLINE' },
+    { id: 'e3333333-3333-4333-8333-333333333333', projectId: '77777777-7777-4777-8777-777777777777', instituteNgoId: '44444444-4444-4444-8444-444444444444', name: 'CAM-03 Gate', url: 'rtsp://cam-rukmini-03.local:554/stream', status: 'OFFLINE' },
+    { id: 'e4444444-4444-4444-8444-444444444444', projectId: '99999999-9999-4999-8999-999999999999', instituteNgoId: '66666666-6666-4666-8666-666666666666', name: 'CAM-03 Dorm', url: 'rtsp://cam-nirmal-03.local:554/stream', status: 'OFFLINE' },
+    { id: 'e5555555-5555-4555-8555-555555555555', projectId: '88888888-8888-4888-8888-888888888888', instituteNgoId: '55555555-5555-4555-8555-555555555555', name: 'CAM-01 Reception', url: 'rtsp://cam-nambikkai-01.local:554/stream', status: 'ONLINE' },
+  ];
+  for (const f of FEEDS) {
+    await prisma.$executeRaw`
+      INSERT INTO cctv_feeds (id, "projectId", "instituteNgoId", name, "rtspUrl", status, resolution, "createdAt", "updatedAt")
+      VALUES (${f.id}::uuid, ${f.projectId}::uuid, ${f.instituteNgoId}::uuid, ${f.name}, ${encryption.encrypt(f.url)}, ${f.status}, '1920x1080', NOW(), NOW())
       ON CONFLICT (id) DO NOTHING;
     `;
   }

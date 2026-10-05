@@ -387,12 +387,116 @@
                 phone: '',
             });
 
+            const [liveCtx, setLiveCtx] = useState(null);
+
+            const fmtD = (iso) => {
+                try {
+                    const d = new Date(iso);
+                    if (isNaN(d.getTime())) return '—';
+                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                    return String(d.getDate()).padStart(2, '0') + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+                } catch (e) { return '—'; }
+            };
+
+            // Live data when signed in (same session as the other pages);
+            // otherwise the built-in directory entries are shown.
+            useEffect(() => {
+                let stop = false;
+                (async () => {
+                    try {
+                        const t = localStorage.getItem('gw_token');
+                        if (!t) return;
+                        const get = async (p) => {
+                            const r = await fetch(p, { headers: { Authorization: 'Bearer ' + t } });
+                            if (!r.ok) return null;
+                            return r.json();
+                        };
+                        const [iR, pR, sR, aR, cR] = await Promise.all([
+                            get('/institutes?limit=100'), get('/projects?limit=100'), get('/inspections?limit=200'),
+                            get('/anomalies?limit=100'), get('/cctv?limit=100'),
+                        ]);
+                        if (stop || !iR) return;
+                        const arr = (x) => (Array.isArray(x) ? x : ((x && x.data) || []));
+                        const institutes = arr(iR);
+                        const projects = arr(pR);
+                        const inspections = arr(sR);
+                        const anomalies = arr(aR);
+                        const iconPalette = ['bg-emerald-600', 'bg-blue-600', 'bg-red-600', 'bg-amber-500', 'bg-purple-600', 'bg-teal-600'];
+                        const mapped = institutes.map((inst, idx) => {
+                            const projs = projects.filter((p) => p.instituteNgoId === inst.id);
+                            const insp = inspections.filter((s) => projs.some((p) => p.id === s.projectId));
+                            const anoms = anomalies.filter((a) => a.projectId && projs.some((p) => p.id === a.projectId));
+                            const open = anoms.filter((a) => a.status === 'DETECTED' || a.status === 'INVESTIGATING');
+                            const done = insp.filter((s) => s.completedAt).sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+                            const bene = projs.reduce((sum, p) => sum + (Number(p.beneficiaryCount) || 0), 0);
+                            return {
+                                id: inst.registrationNo || inst.id,
+                                dbId: inst.id,
+                                name: inst.name,
+                                district: [inst.district, inst.state].filter(Boolean).join(', ') || '—',
+                                type: inst.type || 'Institute',
+                                lat: Number(inst.lat) || 0,
+                                lng: Number(inst.lng) || 0,
+                                address: [inst.addressLine1, inst.district, inst.state, inst.pinCode].filter(Boolean).join(', '),
+                                phone: inst.contactPhone || inst.contactEmail || '—',
+                                lastInsp: done.length ? fmtD(done[0].completedAt) : 'Not inspected',
+                                riskScore: Math.min(99, 20 + open.length * 25),
+                                beneficiaries: bene,
+                                staff: '—',
+                                attendanceToday: '—',
+                                iconColor: iconPalette[idx % iconPalette.length],
+                            };
+                        });
+                        if (!stop && mapped.length) {
+                            setLiveCtx({ projects, inspections, anomalies, feeds: arr(cR) });
+                            setInstitutes(mapped);
+                            setSelectedId((prev) => (mapped.some((m) => m.id === prev) ? prev : mapped[0].id));
+                        }
+                    } catch (e) {}
+                })();
+                return () => { stop = true; };
+            }, []);
+
             const filtered = useMemo(() => {
                 const normalizedSearch = search.toLowerCase();
                 return institutes.filter(i => i.name.toLowerCase().includes(normalizedSearch) || i.id.toLowerCase().includes(normalizedSearch));
             }, [institutes, search]);
 
             const activeInst = institutes.find(i => i.id === selectedId) || institutes[0];
+
+            // Cross-source verification analysis for the selected institute.
+            // Only computable from live backend rows (never invented).
+            const analysis = (() => {
+                if (!liveCtx || !activeInst || !activeInst.dbId) return null;
+                const projs = liveCtx.projects.filter((p) => p.instituteNgoId === activeInst.dbId);
+                const insp = liveCtx.inspections.filter((s) => projs.some((p) => p.id === s.projectId));
+                const anoms = liveCtx.anomalies.filter((a) => a.projectId && projs.some((p) => p.id === a.projectId));
+                const open = anoms.filter((a) => a.status === 'DETECTED' || a.status === 'INVESTIGATING');
+                const crit = open.filter((a) => a.severity === 'CRITICAL').length;
+                const high = open.filter((a) => a.severity === 'HIGH').length;
+                const med = open.length - crit - high;
+                const ifeeds = liveCtx.feeds.filter((f) => f.instituteNgoId === activeInst.dbId);
+                const online = ifeeds.filter((f) => f.status === 'ONLINE').length;
+                const offline = ifeeds.length - online;
+                const done = insp.filter((s) => s.completedAt).sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+                const lastVisit = done.length ? done[0].completedAt : null;
+                const daysSince = lastVisit ? Math.floor((Date.now() - new Date(lastVisit).getTime()) / 86400000) : null;
+                const pending = insp.filter((s) => s.status === 'SCHEDULED').length;
+                const factors = [];
+                const anomPts = Math.min(40, crit * 12 + high * 8 + med * 4);
+                if (anomPts > 0) factors.push({ label: 'Open anomalies (' + crit + ' critical, ' + high + ' high, ' + med + ' other)', pts: anomPts });
+                if (offline > 0) factors.push({ label: 'CCTV feeds offline (' + offline + ' of ' + ifeeds.length + ')', pts: 10 });
+                if (lastVisit == null || daysSince > 90) factors.push({ label: lastVisit == null ? 'Never inspected on record' : 'Last visit ' + daysSince + ' days ago', pts: 10 });
+                const score = Math.min(99, 10 + factors.reduce((t, f) => t + f.pts, 0));
+                const level = score >= 70 ? 'High' : score >= 40 ? 'Medium' : 'Low';
+                const signals = (open.length > 0 ? 1 : 0) + (offline > 0 ? 1 : 0) + ((lastVisit == null || daysSince > 90) ? 1 : 0);
+                return {
+                    open: open.length, crit, high, med,
+                    feedTotal: ifeeds.length, online, offline,
+                    lastVisit, daysSince, pending, factors, score, level, signals,
+                    inconsistent: signals >= 2,
+                };
+            })();
 
             const handleFlagInstitute = (event) => {
                 event.preventDefault();
@@ -609,6 +713,70 @@
                                                 <p className="text-[0.95rem] font-bold text-slate-700">{activeInst.lastInsp}</p>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    {/* Verification Analysis — cross-source evidence correlation */}
+                                    <div className="mb-10 border-t border-slate-100 pt-6">
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <div className="w-10 h-10 rounded-xl bg-primary-700 text-white flex items-center justify-center shadow-md"><Icons.Activity /></div>
+                                            <h3 className="text-lg font-extrabold text-slate-800">Verification Analysis</h3>
+                                        </div>
+                                        <p className="text-xs font-semibold text-slate-500 mb-5 ml-[52px]">Cross-source evidence correlation · computed live, never estimated</p>
+                                        {!analysis ? (
+                                            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 text-center">
+                                                <p className="font-extrabold text-slate-700 text-sm mb-1">Sign in to run verification analysis</p>
+                                                <p className="text-xs font-semibold text-slate-500 mb-4">Correlates anomalies, inspections and CCTV feeds for this institute.</p>
+                                                <button onClick={() => window.location.href = 'login.html'} className="bg-primary-800 hover:bg-primary-900 text-white text-sm font-extrabold px-6 py-3 rounded-xl shadow-md transition-all">Go to Sign in</button>
+                                            </div>
+                                        ) : (
+                                            <div className="bg-slate-50/60 rounded-2xl p-6 border border-slate-200">
+                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+                                                    <div>
+                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">Open anomalies</p>
+                                                        <p className="text-xl font-black text-slate-800">{analysis.open} <span className="text-xs font-bold text-slate-500">({analysis.crit}C · {analysis.high}H)</span></p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">CCTV availability</p>
+                                                        <p className="text-xl font-black text-slate-800">{analysis.feedTotal ? Math.round((analysis.online / analysis.feedTotal) * 100) + '%' : '—'} <span className="text-xs font-bold text-slate-500">{analysis.feedTotal ? analysis.online + '/' + analysis.feedTotal + ' online' : 'no feeds'}</span></p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">Last inspection</p>
+                                                        <p className="text-xl font-black text-slate-800">{analysis.lastVisit ? fmtD(analysis.lastVisit) : 'Never'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">Pending inspections</p>
+                                                        <p className="text-xl font-black text-slate-800">{analysis.pending}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border border-slate-200 mb-4">
+                                                    <span className="text-xs font-extrabold text-slate-500 uppercase tracking-widest">Inspection priority</span>
+                                                    <span className="text-sm font-black text-slate-800">{analysis.level} · {analysis.score}/100</span>
+                                                </div>
+                                                {analysis.factors.length > 0 && (
+                                                    <div className="mb-4">
+                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest mb-2">Why?</p>
+                                                        {analysis.factors.map((f, i) => (
+                                                            <div key={i} className="flex items-center justify-between py-1.5 border-b border-dashed border-slate-200 last:border-0">
+                                                                <span className="text-xs font-bold text-slate-600 font-mono">{f.label}</span>
+                                                                <span className="text-xs font-black text-red-600 font-mono">+{f.pts}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {analysis.inconsistent ? (
+                                                    <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                                                        <p className="text-xs font-black text-amber-700 uppercase tracking-widest mb-1">⚠ Cross-source inconsistency</p>
+                                                        <p className="text-sm font-bold text-slate-700">{analysis.signals} independent signals disagree with reported operations.</p>
+                                                        <p className="text-xs font-semibold text-slate-500 mt-2">AI finding: Anomaly detected. Human review required.</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4">
+                                                        <p className="text-xs font-black text-emerald-700 uppercase tracking-widest mb-1">Signals agree</p>
+                                                        <p className="text-sm font-bold text-slate-700">Sources agree across records. Routine monitoring.</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Action Bar */}

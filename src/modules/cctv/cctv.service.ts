@@ -35,7 +35,7 @@ export class CctvService {
     if (search && status) {
       const searchTerm = `%${search}%`;
       results = await this.prisma.$queryRaw`
-        SELECT id, name, "rtspUrl" AS rtsp_url, status
+        SELECT id, name, "projectId", "instituteNgoId", "rtspUrl" AS rtsp_url, status
         FROM cctv_feeds
         WHERE (name ILIKE ${searchTerm}) AND status::text = ${status}
         LIMIT ${limit} OFFSET ${offset};
@@ -43,45 +43,53 @@ export class CctvService {
     } else if (search) {
       const searchTerm = `%${search}%`;
       results = await this.prisma.$queryRaw`
-        SELECT id, name, "rtspUrl" AS rtsp_url, status
+        SELECT id, name, "projectId", "instituteNgoId", "rtspUrl" AS rtsp_url, status
         FROM cctv_feeds
         WHERE name ILIKE ${searchTerm}
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else if (status) {
       results = await this.prisma.$queryRaw`
-        SELECT id, name, "rtspUrl" AS rtsp_url, status
+        SELECT id, name, "projectId", "instituteNgoId", "rtspUrl" AS rtsp_url, status
         FROM cctv_feeds
         WHERE status::text = ${status}
         LIMIT ${limit} OFFSET ${offset};
       `;
     } else {
       results = await this.prisma.$queryRaw`
-        SELECT id, name, "rtspUrl" AS rtsp_url, status
+        SELECT id, name, "projectId", "instituteNgoId", "rtspUrl" AS rtsp_url, status
         FROM cctv_feeds
         LIMIT ${limit} OFFSET ${offset};
       `;
     }
 
-    // Decrypt rtsp_url for safe consumption
-    return results.map((feed) => ({
-      ...feed,
-      rtsp_url: feed.rtsp_url ? this.encryption.decrypt(feed.rtsp_url) : null,
-    }));
+    // Decrypt rtsp_url for safe consumption (best-effort: never fail the list).
+    return results.map((feed) => {
+      let url: string | null = null;
+      try {
+        url = feed.rtsp_url ? this.encryption.decrypt(feed.rtsp_url) : null;
+      } catch {
+        url = null;
+      }
+      return { ...feed, rtsp_url: url };
+    });
   }
 
   async findOne(id: string) {
     const results: any[] = await this.prisma.$queryRaw`
-      SELECT id, name, "rtspUrl" AS rtsp_url, status
+      SELECT id, name, "projectId", "instituteNgoId", "rtspUrl" AS rtsp_url, status
       FROM cctv_feeds
       WHERE id = ${id}::uuid;
     `;
     if (!results || results.length === 0) return null;
     const feed = results[0];
-    return {
-      ...feed,
-      rtsp_url: feed.rtsp_url ? this.encryption.decrypt(feed.rtsp_url) : null,
-    };
+    let url: string | null = null;
+    try {
+      url = feed.rtsp_url ? this.encryption.decrypt(feed.rtsp_url) : null;
+    } catch {
+      url = null;
+    }
+    return { ...feed, rtsp_url: url };
   }
 
   async update(id: string,_updateDto: UpdateCctvDto) {
