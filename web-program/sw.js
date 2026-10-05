@@ -1,6 +1,6 @@
 /* GovWatch service worker: app-shell caching, API always live.
    Installs from /sw.js so its scope (/) covers every page. */
-const CACHE = 'govwatch-v1';
+const CACHE = 'govwatch-v2';
 const CORE = [
   '/login.html',
   '/dashboard.html',
