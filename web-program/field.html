@@ -481,6 +481,8 @@
                     url: URL.createObjectURL(f),
                     kind,
                     liveGps: !!livePos,
+                    fileTime: f.lastModified || Date.now(),
+                    instId: institute.id,
                 }));
                 setUserEvidence((prev) => [...items, ...prev]);
                 e.target.value = '';
@@ -497,10 +499,57 @@
             // Lightbox viewer for gallery items.
             const [lightboxItem, setLightboxItem] = useState(null);
             const [lightboxClock, setLightboxClock] = useState('');
+            const [hashCache, setHashCache] = useState({});
             const removeEvidence = (id) => {
                 if (lightboxItem && lightboxItem.id === id) setLightboxItem(null);
                 setMenuFor(null);
                 setRemovedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+            };
+
+            // SHA-256 over the actual file bytes (uploads and CORS-open URLs).
+            useEffect(() => {
+                if (!lightboxItem || hashCache[lightboxItem.id]) return;
+                const src = lightboxItem.url || lightboxItem.img;
+                if (!src) return;
+                let live = true;
+                fetch(src)
+                    .then((r) => { if (!r.ok) throw new Error('fetch failed'); return r.arrayBuffer(); })
+                    .then((buf) => crypto.subtle.digest('SHA-256', buf))
+                    .then((h) => {
+                        if (!live) return;
+                        const hex = [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, '0')).join('');
+                        setHashCache((p) => ({ ...p, [lightboxItem.id]: hex }));
+                    })
+                    .catch(() => { if (live) setHashCache((p) => ({ ...p, [lightboxItem.id]: 'unavailable' })); });
+                return () => { live = false; };
+            }, [lightboxItem]);
+
+            const shortHash = (hex) => (!hex ? 'computing…' : hex === 'unavailable' ? 'unavailable' : hex.slice(0, 4).toUpperCase() + '…' + hex.slice(-4).toUpperCase());
+            const evidenceIdOf = (item) => 'EV-' + String(item.id).replace(/[^A-Za-z0-9]/g, '').slice(-5).toUpperCase();
+            const inspectorEmail = (() => {
+                try {
+                    const e = localStorage.getItem('gw_email');
+                    if (e) return e;
+                    const t = localStorage.getItem('gw_token');
+                    if (t) return JSON.parse(atob(t.split('.')[1])).email || '';
+                } catch (err) {}
+                return '';
+            })();
+
+            // Proof-of-presence verdict. Built-ins are labelled samples, never verified.
+            const integrityOf = (item) => {
+                if (!item.url) return { state: 'SAMPLE', reason: 'Built-in sample photo for demonstration.' };
+                const src = instituteList.find((x) => x.id === item.instId) || institute;
+                const d = (Number.isFinite(item.lat) && Number.isFinite(item.lng))
+                    ? haversineM(item.lat, item.lng, src.lat, src.lng) : null;
+                const inFence = d != null && d <= 500;
+                const todayStart = new Date();
+                todayStart.setHours(0, 0, 0, 0);
+                const fresh = (item.fileTime || 0) >= todayStart.getTime();
+                if (!item.liveGps) return { state: 'REJECTED', reason: 'No live GPS fix at capture.', dist: d, inFence };
+                if (!fresh) return { state: 'REJECTED', reason: 'Evidence does not belong to active inspection session.', dist: d, inFence };
+                if (!inFence) return { state: 'REJECTED', reason: 'Captured outside the 500m site fence.', dist: d, inFence };
+                return { state: 'VERIFIED', reason: '', dist: d, inFence };
             };
 
             // Ticking CCTV timestamp while the viewer is open.
@@ -906,7 +955,38 @@
                                     {lightboxClock}
                                 </div>
                             </div>
-                            <div className="bg-black border-t border-white/10 px-4 py-3 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+                                <div className="bg-black border-t border-white/10 px-4 py-3 md:px-6 md:py-4" onClick={(e) => e.stopPropagation()}>
+                                    <p className="text-[0.65rem] font-black text-white/50 uppercase tracking-[0.2em] mb-2">Inspection integrity</p>
+                                    {(() => {
+                                        const v = integrityOf(lightboxItem);
+                                        const hex = hashCache[lightboxItem.id];
+                                        const row = 'flex items-center justify-between gap-3 py-1';
+                                        const k = 'font-mono text-[0.7rem] font-bold text-white/50 uppercase tracking-wider';
+                                        const val = 'font-mono text-[0.75rem] font-bold text-white text-right break-all';
+                                        return (
+                                            <div>
+                                                <div className={row}><span className={k}>Inspector</span><span className={val}>{inspectorEmail || 'Unknown account'}</span></div>
+                                                <div className={row}><span className={k}>Location</span><span className={val}>{v.dist == null ? 'no fix' : (v.dist < 1000 ? Math.round(v.dist) + 'm' : (v.dist / 1000).toFixed(1) + 'km') + ' from facility'}</span></div>
+                                                <div className={row}><span className={k}>Geofence</span><span className={val}>{v.inFence ? '✓ PASSED' : '✗ FAILED'}</span></div>
+                                                <div className={row}><span className={k}>Capture time</span><span className={val}>{lightboxItem.time}</span></div>
+                                                <div className={row}><span className={k}>Capture source</span><span className={val}>{lightboxItem.url ? 'Device upload' : 'Sample library'}</span></div>
+                                                <div className={row}><span className={k}>Inspection session</span><span className={val}>Field visit · {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span></div>
+                                                <div className={row}><span className={k}>Evidence ID</span><span className={val}>{evidenceIdOf(lightboxItem)}</span></div>
+                                                <div className={row}><span className={k}>Integrity hash</span><span className={val}>{shortHash(hex)}</span></div>
+                                                <div className="mt-3">
+                                                    {v.state === 'VERIFIED' ? (
+                                                        <p className="inline-block px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">✓ Verified</p>
+                                                    ) : v.state === 'REJECTED' ? (
+                                                        <div><p className="inline-block px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase bg-red-500/20 text-red-300 border border-red-400/40">✗ Rejected</p><p className="text-[0.7rem] font-semibold text-white/60 mt-1.5">{v.reason}</p></div>
+                                                    ) : (
+                                                        <div><p className="inline-block px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase bg-slate-500/20 text-slate-300 border border-slate-400/40">Sample data</p><p className="text-[0.7rem] font-semibold text-white/60 mt-1.5">{v.reason}</p></div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                                <div className="bg-black border-t border-white/10 px-4 py-3 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
                                 <p className="text-xs md:text-sm font-bold text-white/80">{lightboxItem.title} · {lightboxItem.time} · {Number(lightboxItem.lat).toFixed(4)}° N, {Number(lightboxItem.lng).toFixed(4)}° E</p>
                                 <div className="flex gap-2">
                                     <button onClick={() => removeEvidence(lightboxItem.id)} className="px-5 py-2.5 rounded-xl text-sm font-extrabold text-red-300 border border-red-400/50 hover:bg-red-500/10 transition-all">Remove</button>
