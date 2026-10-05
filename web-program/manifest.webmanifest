@@ -1,7 +1,7 @@
 {
-  "name": "GovWatch — Care. Compliance. Trust.",
+  "name": "GovWatch - DoSJE Inspection Intelligence & Verification Platform",
   "short_name": "GovWatch",
-  "description": "Field inspection workspace for shelter homes and institutes.",
+  "description": "Detect anomalies. Verify presence. Conduct surprise inspections. Close findings.",
   "start_url": "/login.html",
   "scope": "/",
   "display": "standalone",
