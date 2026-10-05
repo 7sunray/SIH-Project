@@ -63,13 +63,15 @@ export class CctvService {
       `;
     }
 
-    // Decrypt rtsp_url for safe consumption (best-effort: never fail the list).
+    // Decrypt rtsp_url for safe consumption. Values that were never
+    // encrypted (e.g. plain demo hostnames) are returned verbatim so one
+    // bad row can never fail the whole list.
     return results.map((feed) => {
       let url: string | null = null;
       try {
         url = feed.rtsp_url ? this.encryption.decrypt(feed.rtsp_url) : null;
       } catch {
-        url = null;
+        url = feed.rtsp_url || null;
       }
       return { ...feed, rtsp_url: url };
     });
@@ -87,7 +89,7 @@ export class CctvService {
     try {
       url = feed.rtsp_url ? this.encryption.decrypt(feed.rtsp_url) : null;
     } catch {
-      url = null;
+      url = feed.rtsp_url || null;
     }
     return { ...feed, rtsp_url: url };
   }
