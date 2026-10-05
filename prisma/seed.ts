@@ -290,6 +290,21 @@ async function main() {
     WHERE "schemeCode" = 'SCH/DL/2026/01';
   `;
 
+  // Configurable corrective-action deadline (days) — read live, never hardcoded.
+  await prisma.$executeRaw`
+    INSERT INTO system_config (key, value, description, "updatedAt")
+    VALUES ('corrective_action_due_days', '12', 'Days an NGO has to respond to a corrective action', NOW())
+    ON CONFLICT (key) DO NOTHING;
+  `;
+
+  // Demo: one finding already at the ACTION stage (headcount mismatch).
+  await prisma.$executeRaw`
+    INSERT INTO corrective_actions (id, "anomalyId", description, "dueDate", status, "createdAt", "updatedAt")
+    VALUES ('c2222222-2222-4222-8222-222222222222', 'f2222222-2222-4222-8222-222222222222',
+      'Submit attendance clarification + corrective plan', NOW() + INTERVAL '12 days', 'PENDING', NOW(), NOW())
+    ON CONFLICT (id) DO NOTHING;
+  `;
+
   console.log('Seed complete: admin + 3 officers + 3 institutes + 3 projects + 3 inspections.');
 
   // Demo anomalies (drive the risk scores on the Assign page).

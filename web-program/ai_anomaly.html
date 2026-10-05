@@ -460,6 +460,53 @@
                 window.location.href = 'video_verification.html';
             };
 
+            // Inspection lifecycle (finding -> action -> reinspection -> closure).
+            const [expandedId, setExpandedId] = useState(null);
+            const [cycles, setCycles] = useState({});
+            const [cycleLoading, setCycleLoading] = useState(false);
+            const [cycleBusy, setCycleBusy] = useState({});
+            const [formDesc, setFormDesc] = useState('');
+            const [formNote, setFormNote] = useState('');
+
+            const toggleCycle = async (feed) => {
+                if (expandedId === feed.id) { setExpandedId(null); return; }
+                setExpandedId(feed.id);
+                setFormDesc('');
+                setFormNote('');
+                if (!cycles[feed.id]) {
+                    setCycleLoading(true);
+                    try {
+                        const data = await apiFetch('/anomalies/' + feed.id + '/lifecycle');
+                        setCycles((prev) => ({ ...prev, [feed.id]: data }));
+                    } catch (err) {
+                        setActionError('Could not load lifecycle: ' + err.message);
+                    }
+                    setCycleLoading(false);
+                }
+            };
+
+            const cycleAct = async (feed, action, extra) => {
+                setCycleBusy((prev) => ({ ...prev, [feed.id + action]: true }));
+                setActionError('');
+                try {
+                    const data = await apiFetch('/anomalies/' + feed.id + '/lifecycle', { method: 'POST', body: JSON.stringify({ action, ...(extra || {}) }) });
+                    setCycles((prev) => ({ ...prev, [feed.id]: data }));
+                    await loadAll();
+                } catch (err) {
+                    setActionError('Lifecycle update failed: ' + err.message);
+                }
+                setCycleBusy((prev) => ({ ...prev, [feed.id + action]: false }));
+            };
+
+            const dueText = (iso) => {
+                try {
+                    const days = Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000);
+                    if (days < 0) return 'Overdue by ' + Math.abs(days) + 'd';
+                    if (days === 0) return 'Due today';
+                    return 'Due in ' + days + 'd';
+                } catch (e) { return ''; }
+            };
+
             const handleEscalate = async (feed) => {
                 setBusy((prev) => ({ ...prev, [feed.id]: true }));
                 setActionError('');
@@ -737,6 +784,88 @@
                                                         </span>
                                                     )}
                                                 </div>
+                                            </div>
+
+                                            {/* Inspection lifecycle */}
+                                            <div className="mt-6 border-t border-slate-100 pt-5">
+                                                <button onClick={() => toggleCycle(feed)} className="flex items-center gap-2 text-xs font-extrabold text-primary-700 uppercase tracking-widest hover:text-primary-900 transition-all">
+                                                    <span className={`inline-block transition-transform ${expandedId === feed.id ? 'rotate-90' : ''}`}><Icons.ChevronRight /></span>
+                                                    Inspection lifecycle
+                                                    {cycles[feed.id] && cycles[feed.id].action && (
+                                                        <span className="ml-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 normal-case tracking-normal">· {cycles[feed.id].action.status}</span>
+                                                    )}
+                                                </button>
+                                                {expandedId === feed.id && (
+                                                    <div className="mt-4">
+                                                        {cycleLoading && !cycles[feed.id] ? (
+                                                            <p className="text-sm font-bold text-slate-500">Loading lifecycle…</p>
+                                                        ) : cycles[feed.id] ? (() => {
+                                                            const c = cycles[feed.id];
+                                                            const a = c.action;
+                                                            const r = c.reinspection;
+                                                            return (
+                                                                <div className="relative pl-6">
+                                                                    <div className="absolute top-2 left-[7px] bottom-2 w-[2px] bg-slate-200 rounded-full"></div>
+                                                                    <div className="relative pb-5">
+                                                                        <span className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-primary-700 border-2 border-white shadow"></span>
+                                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">1 · Finding</p>
+                                                                        <p className="text-sm font-extrabold text-slate-800 mt-1">{c.anomaly.title}</p>
+                                                                        <p className="text-xs font-semibold text-slate-500">Severity {c.anomaly.severity} · detected {feed.date} {feed.time}</p>
+                                                                    </div>
+                                                                    <div className="relative pb-5">
+                                                                        <span className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-amber-500 border-2 border-white shadow"></span>
+                                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">2 · Corrective action</p>
+                                                                        {!a ? (
+                                                                            <div className="mt-2">
+                                                                                <textarea value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="e.g. Submit attendance clarification + corrective plan" rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-semibold text-slate-700 outline-none focus:border-primary-500 resize-none"></textarea>
+                                                                                <div className="flex items-center justify-between mt-2">
+                                                                                    <span className="text-xs font-bold text-slate-500">NGO gets {c.dueDays} days (configurable)</span>
+                                                                                    <button disabled={!!cycleBusy[feed.id + 'require-action']} onClick={() => cycleAct(feed, 'require-action', { description: formDesc })} className="px-4 py-2 rounded-xl text-xs font-extrabold text-white bg-primary-800 hover:bg-primary-900 disabled:opacity-60 transition-all">Require action</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="mt-1">
+                                                                                <p className="text-sm font-extrabold text-slate-800">{a.description} <span className="ml-1 px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[0.65rem]">{a.status}</span></p>
+                                                                                <p className="text-xs font-semibold text-slate-500 mt-0.5">{dueText(a.dueDate)} · due {new Date(a.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                                                {a.status === 'PENDING' && (
+                                                                                    <div className="mt-2">
+                                                                                        <textarea value={formNote} onChange={(e) => setFormNote(e.target.value)} placeholder="NGO response note…" rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-semibold text-slate-700 outline-none focus:border-primary-500 resize-none"></textarea>
+                                                                                        <button disabled={!!cycleBusy[feed.id + 'submit-response']} onClick={() => cycleAct(feed, 'submit-response', { note: formNote })} className="mt-2 px-4 py-2 rounded-xl text-xs font-extrabold text-white bg-primary-800 hover:bg-primary-900 disabled:opacity-60 transition-all">Submit NGO response</button>
+                                                                                    </div>
+                                                                                )}
+                                                                                {a.submittedNote && <p className="text-xs font-semibold text-slate-600 mt-2">Response: {a.submittedNote}</p>}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="relative pb-5">
+                                                                        <span className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow"></span>
+                                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">3 · Reinspection</p>
+                                                                        {r ? (
+                                                                            <p className="text-sm font-extrabold text-slate-800 mt-1">Scheduled · {r.status}{r.scheduledDate ? ' · ' + new Date(r.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}</p>
+                                                                        ) : a && a.status === 'SUBMITTED' ? (
+                                                                            <button disabled={!!cycleBusy[feed.id + 'reinspect']} onClick={() => cycleAct(feed, 'reinspect')} className="mt-2 px-4 py-2 rounded-xl text-xs font-extrabold text-primary-800 border border-primary-200 hover:bg-primary-50 disabled:opacity-60 transition-all">Schedule reinspection</button>
+                                                                        ) : (
+                                                                            <p className="text-xs font-semibold text-slate-500 mt-1">Available once the NGO responds.</p>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="relative">
+                                                                        <span className={`absolute -left-6 top-1 w-4 h-4 rounded-full border-2 border-white shadow ${c.closed ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
+                                                                        <p className="text-[0.65rem] font-black text-slate-400 uppercase tracking-widest">4 · Verification</p>
+                                                                        {c.closed ? (
+                                                                            <p className="mt-1 inline-block px-3 py-1.5 rounded-lg text-xs font-black tracking-widest uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">Case closed</p>
+                                                                        ) : a && a.status === 'SUBMITTED' ? (
+                                                                            <button disabled={!!cycleBusy[feed.id + 'verify-close']} onClick={() => cycleAct(feed, 'verify-close')} className="mt-2 px-4 py-2 rounded-xl text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 transition-all">Verify &amp; close case</button>
+                                                                        ) : (
+                                                                            <p className="text-xs font-semibold text-slate-500 mt-1">Closes after a submitted response is verified.</p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })() : (
+                                                            <p className="text-sm font-bold text-slate-500">Could not load lifecycle.</p>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
