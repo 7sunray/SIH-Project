@@ -399,6 +399,39 @@ async function main() {
     `;
   }
 
+  // Older, already-resolved cases at Rukmini: gives the visit-over-visit
+  // comparison genuine previous-window history (recurring + resolved).
+  const OLD_CASES = [
+    {
+      id: '0a0a0a0a-0a0a-40a0-80a0-0a0a0a0a0a0a',
+      type: 'BENEFICIARY_COUNT_MISMATCH',
+      severity: 'HIGH',
+      title: 'Headcount mismatch flagged in August review',
+      description: 'Register showed 38 against 44 verified beneficiaries.',
+      source: 'MANUAL',
+      detected: '2026-08-10T10:00:00Z',
+      resolved: '2026-08-20T10:00:00Z',
+    },
+    {
+      id: '0b0b0b0b-0b0b-40b0-80b0-0b0b0b0b0b0b',
+      type: 'GEO_FENCE_VIOLATION',
+      severity: 'MEDIUM',
+      title: 'Gate sensor fault during rains',
+      description: 'Gate sensor reported false exits during heavy rain.',
+      source: 'CCTV',
+      detected: '2026-08-05T10:00:00Z',
+      resolved: '2026-08-12T10:00:00Z',
+    },
+  ];
+  for (const a of OLD_CASES) {
+    await prisma.$executeRaw`
+      INSERT INTO anomaly_alerts (id, "anomalyType", severity, status, title, description, source, "projectId", "detectedAt", "resolvedAt", "createdAt", "updatedAt")
+      VALUES (${a.id}::uuid, ${a.type}, ${a.severity}, 'RESOLVED', ${a.title}, ${a.description}, ${a.source},
+        '77777777-7777-4777-8777-777777777777'::uuid, ${a.detected}::timestamptz, ${a.resolved}::timestamptz, NOW(), NOW())
+      ON CONFLICT (id) DO NOTHING;
+    `;
+  }
+
   // Demo CCTV feeds. URLs are plain demo hostnames (no secrets), so they are
   // stored as-is; the API returns values it cannot decrypt verbatim.
   const FEEDS = [
