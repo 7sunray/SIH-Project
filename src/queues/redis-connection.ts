@@ -6,7 +6,18 @@ export interface RedisConnectionOptions {
   username?: string;
   password?: string;
   tls?: Record<string, unknown>;
+  // BullMQ requires null so workers never drop jobs on transient blips;
+  // keepAlive defeats idle-connection resets by managed providers.
+  maxRetriesPerRequest?: null;
+  keepAlive?: number;
+  enableReadyCheck?: boolean;
 }
+
+const HARDENED = {
+  maxRetriesPerRequest: null,
+  keepAlive: 30000,
+  enableReadyCheck: true,
+} as const;
 
 /**
  * Builds the BullMQ/ioredis connection options.
@@ -33,10 +44,12 @@ export function buildRedisConnection(config: ConfigService): RedisConnectionOpti
       username: parsed.username ? decodeURIComponent(parsed.username) : undefined,
       password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
       tls: parsed.protocol === 'rediss:' ? {} : undefined,
+      ...HARDENED,
     };
   }
   return {
     host: config.get<string>('REDIS_HOST', 'localhost'),
     port: Number(config.get('REDIS_PORT', 6380)),
+    ...HARDENED,
   };
 }
