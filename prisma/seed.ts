@@ -295,13 +295,7 @@ async function main() {
     ON CONFLICT (key) DO NOTHING;
   `;
 
-  // Demo: one finding already at the ACTION stage (headcount mismatch).
-  await prisma.$executeRaw`
-    INSERT INTO corrective_actions (id, "anomalyId", description, "dueDate", status, "createdAt", "updatedAt")
-    VALUES ('c2222222-2222-4222-8222-222222222222', 'f2222222-2222-4222-8222-222222222222',
-      'Submit attendance clarification + corrective plan', NOW() + INTERVAL '12 days', 'PENDING', NOW(), NOW())
-    ON CONFLICT (id) DO NOTHING;
-  `;
+  // (Demo corrective action is inserted at the end of main(), after its anomaly exists.)
 
   console.log('Seed complete: admin + 3 officers + 3 institutes + 3 projects + 3 inspections.');
 
@@ -448,6 +442,15 @@ async function main() {
       ON CONFLICT (id) DO NOTHING;
     `;
   }
+
+  // Demo: one finding already at the ACTION stage. Must run after all
+  // anomaly rows exist (FK to f222).
+  await prisma.$executeRaw`
+    INSERT INTO corrective_actions (id, "anomalyId", description, "dueDate", status, "createdAt", "updatedAt")
+    VALUES ('c2222222-2222-4222-8222-222222222222', 'f2222222-2222-4222-8222-222222222222',
+      'Submit attendance clarification + corrective plan', NOW() + INTERVAL '12 days', 'PENDING', NOW(), NOW())
+    ON CONFLICT (id) DO NOTHING;
+  `;
 }
 
 main()
